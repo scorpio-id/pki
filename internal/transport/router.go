@@ -14,7 +14,9 @@ func NewRouter(cfg config.Config) *mux.Router{
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/sign", signatures.HandleCSR).Methods(http.MethodPost, http.MethodOptions)
+	signer := signatures.NewSigner()
+
+	router.HandleFunc("/sign", signer.HandleCSR).Methods(http.MethodPost, http.MethodOptions)
 
 	return router
 }

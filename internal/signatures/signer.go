@@ -6,8 +6,9 @@ import (
 	"log"
 	"net/http"
 
+	"encoding/pem"
+
 	"github.com/scorpio-id/pki/pkg/certificate"
-	"encoding/base64"
 )
 
 // Generates RSA Public & Private Key Pair and signs
@@ -58,12 +59,31 @@ func (s *Signer) HandleCSR(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
+	//log.Print(base64.StdEncoding.EncodeToString(csr))
+	block := pem.Block{
+		Type: "CERTIFICATE REQUEST",
+		Bytes: csr,
+	}
+
+	output := pem.EncodeToMemory(&block)
+	log.Print(string(output))
+
 	cert, err := s.CreateX509(csr)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(base64.StdEncoding.EncodeToString(cert)))
+	block = pem.Block{
+		Type: "CERTIFICATE",
+		Bytes: cert,
+	}
+
+	err = pem.Encode(w, &block)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//w.WriteHeader(http.StatusOK)
+	//w.Write([]byte(base64.StdEncoding.EncodeToString(cert)))
 }

@@ -3,6 +3,7 @@ package signatures
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"log"
 	"net/http"
 
@@ -26,9 +27,12 @@ func NewSigner() *Signer {
 		log.Fatal(err)
 	}
 
+	// TODO - generate self-signed certificate
+
 	return &Signer{
 		private: private,
 	}
+
 }
 
 // TODO - should accept a CSR (PEM-ecoded)
@@ -45,9 +49,8 @@ func (s *Signer) ValidateCSR(csr []byte) {
 	// }
 }
 
-// Handler for Certificate Signing Requests,
-// Creates and Verifies to create a X.509 certificates
-func (s *Signer) HandleCSR(w http.ResponseWriter, r *http.Request) {
+// Handler for Certificate Signing Requests
+func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if r.Header.Get("Content-Type") != "application/json" {
 	// 	w.WriteHeader(http.StatusUnsupportedMediaType)
@@ -59,7 +62,6 @@ func (s *Signer) HandleCSR(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	//log.Print(base64.StdEncoding.EncodeToString(csr))
 	block := pem.Block{
 		Type: "CERTIFICATE REQUEST",
 		Bytes: csr,
@@ -86,4 +88,21 @@ func (s *Signer) HandleCSR(w http.ResponseWriter, r *http.Request) {
 
 	//w.WriteHeader(http.StatusOK)
 	//w.Write([]byte(base64.StdEncoding.EncodeToString(cert)))
+}
+
+func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
+	public, err := x509.MarshalPKIXPublicKey(&s.private.PublicKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	block := pem.Block{
+		Type: "PUBLIC KEY",
+		Bytes: public,
+	}
+
+	err = pem.Encode(w, &block)
+	if err !=nil {
+		log.Fatal(err)
+	}
 }

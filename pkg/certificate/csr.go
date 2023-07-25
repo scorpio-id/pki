@@ -57,7 +57,7 @@ func GenerateCSR() ([]byte, error) {
 	// sample identity for CSR
 	sample, _ := rsa.GenerateKey(rand.Reader, 2048)
 
-	// 1 is "RSA"
+	// 1 is RSA
 	template := x509.CertificateRequest{
 		PublicKeyAlgorithm: 1,
 		PublicKey: &sample.PublicKey,

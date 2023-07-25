@@ -5,16 +5,19 @@ import (
 	"crypto/rsa"
 	"log"
 	"net/http"
+
 	"github.com/scorpio-id/pki/pkg/certificate"
+	"encoding/base64"
 )
 
 // Generates RSA Public & Private Key Pair and signs
-
+// FIXME - needs to include self-signed cert for CA bundle
 type Signer struct {
 	private *rsa.PrivateKey
 }
 
 // TODO - make bits configurable!
+// TODO - generate root certificate
 func NewSigner() *Signer {
 	// start by creating a 2048-bit RSA public/private key pair
 	private, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -28,14 +31,17 @@ func NewSigner() *Signer {
 }
 
 // TODO - should accept a CSR (PEM-ecoded)
-func (s *Signer) CreateX509() ([]byte, error){
+func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	// FIXME - call ValidateCSR() ...
-	return certificate.Sign(s.private)
+	return certificate.Sign(csr, s.private)
 }
 
 // TODO - should check required fields of CSR before signing, as well as any security policy (ie: no *.com)
-func (s *Signer) ValidateCSR() {
-
+func (s *Signer) ValidateCSR(csr []byte) {
+	// parsed, err := x509.ParseCertificateRequest(csr)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
 
 // Handler for Certificate Signing Requests,
@@ -46,25 +52,18 @@ func (s *Signer) HandleCSR(w http.ResponseWriter, r *http.Request) {
 	// 	w.WriteHeader(http.StatusUnsupportedMediaType)
 	// }
 
-	cert, err := s.CreateX509()
+	csr, err := certificate.GenerateCSR()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
-	// r.Body = http.MaxBytesReader(w, r.Body, 1000000) // Each Request at max takes 1 KB
-
-	// decoder := json.NewDecoder(r.Body)
-	// decoder.DisallowUnknownFields()
-
-	// var c certificate.CSR
-
-	// err := decoder.Decode(&c)
-	// if err != nil{
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
+	cert, err := s.CreateX509(csr)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(cert)
+	w.Write([]byte(base64.StdEncoding.EncodeToString(cert)))
 }

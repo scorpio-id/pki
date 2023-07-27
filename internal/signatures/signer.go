@@ -15,7 +15,8 @@ import (
 // Generates RSA Public & Private Key Pair and signs
 // FIXME - needs to include self-signed cert for CA bundle
 type Signer struct {
-	private *rsa.PrivateKey
+	Certificate *x509.Certificate
+	private     *rsa.PrivateKey
 }
 
 // TODO - make bits configurable!
@@ -27,9 +28,23 @@ func NewSigner() *Signer {
 		log.Fatal(err)
 	}
 
-	// TODO - generate self-signed certificate
+	csr, err := certificate.GenerateCSR([]string{"scorpio.io", "*.scorpio.io"})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cert, err := certificate.Sign(csr, private)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	x509, err := x509.ParseCertificate(cert)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return &Signer{
+		Certificate: x509,
 		private: private,
 	}
 
@@ -56,29 +71,44 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	// 	w.WriteHeader(http.StatusUnsupportedMediaType)
 	// }
 
-	csr, err := certificate.GenerateCSR()
+	// TODO - accept PEM-encoded CSR string in JSON
+	// TODO - add config
+	csr, err := certificate.GenerateCSR([]string{"example.com", "*.example.com"})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
 	block := pem.Block{
-		Type: "CERTIFICATE REQUEST",
+		Type:  "CERTIFICATE REQUEST",
 		Bytes: csr,
 	}
 
 	output := pem.EncodeToMemory(&block)
 	log.Print(string(output))
 
+	// 'csr' is ASN.1 DER data (the client gives a PEM-encoded CSR)
 	cert, err := s.CreateX509(csr)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
+	// leaf certificate
+	block = pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert,
+	}
+
+	err = pem.Encode(w, &block)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// add self-signed root ca
 	block = pem.Block{
 		Type: "CERTIFICATE",
-		Bytes: cert,
+		Bytes: s.Certificate.Raw,
 	}
 
 	err = pem.Encode(w, &block)
@@ -97,12 +127,12 @@ func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	block := pem.Block{
-		Type: "PUBLIC KEY",
+		Type:  "PUBLIC KEY",
 		Bytes: public,
 	}
 
 	err = pem.Encode(w, &block)
-	if err !=nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 }

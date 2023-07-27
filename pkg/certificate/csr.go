@@ -53,7 +53,7 @@ func Sign(csr []byte, private *rsa.PrivateKey) ([]byte, error) {
 }
 
 // Generate creates a sample CSR for testing purposes
-func GenerateCSR() ([]byte, error) {
+func GenerateCSR(sans []string) ([]byte, error) {
 	// sample identity for CSR
 	sample, _ := rsa.GenerateKey(rand.Reader, 2048)
 
@@ -61,7 +61,7 @@ func GenerateCSR() ([]byte, error) {
 	template := x509.CertificateRequest{
 		PublicKeyAlgorithm: 1,
 		PublicKey: &sample.PublicKey,
-		DNSNames: []string{"scorpio.io", "*.scorpio.io"},
+		DNSNames: sans,
 	}
 
 	return x509.CreateCertificateRequest(rand.Reader, &template, sample)

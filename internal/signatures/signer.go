@@ -42,52 +42,49 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 }
 
 // TODO - should check required fields of CSR before signing, as well as any security policy (ie: no *.com)
-func (s *Signer) ValidateCSR(csr []byte) {
-	// parsed, err := x509.ParseCertificateRequest(csr)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+func (s *Signer) ValidateCSR(csr []byte) error {
+	_, err := x509.ParseCertificateRequest(csr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return err
+}
+
+type RequestCSR struct {
+	CertificateRequest string `json:"csr"`
 }
 
 // Handler for Certificate Signing Requests
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 
-	// if r.Header.Get("Content-Type") != "application/json" {
-	// 	w.WriteHeader(http.StatusUnsupportedMediaType)
-	// }
+	if r.Header.Get("Content-Type") != "multipart/form-data" {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+	}
 
-	csr, err := certificate.GenerateCSR()
+	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
+	r.ParseMultipartForm(1000)
+
+	csr := r.FormValue("csr")
+
+	block, _ := pem.Decode([]byte(csr))
+	
+	cert, err := s.CreateX509(block.Bytes)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal(err)
 	}
 
-	block := pem.Block{
-		Type: "CERTIFICATE REQUEST",
-		Bytes: csr,
-	}
-
-	output := pem.EncodeToMemory(&block)
-	log.Print(string(output))
-
-	cert, err := s.CreateX509(csr)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Fatal(err)
-	}
-
-	block = pem.Block{
-		Type: "CERTIFICATE",
+	block2 := pem.Block{
+		Type:  "CERTIFICATE",
 		Bytes: cert,
 	}
 
-	err = pem.Encode(w, &block)
+	err = pem.Encode(w, &block2)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//w.WriteHeader(http.StatusOK)
-	//w.Write([]byte(base64.StdEncoding.EncodeToString(cert)))
 }
 
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
@@ -97,12 +94,12 @@ func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	block := pem.Block{
-		Type: "PUBLIC KEY",
+		Type:  "PUBLIC KEY",
 		Bytes: public,
 	}
 
 	err = pem.Encode(w, &block)
-	if err !=nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 }

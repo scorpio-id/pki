@@ -20,7 +20,7 @@ type Signer struct {
 }
 
 // TODO - make bits configurable!
-// TODO - generate root certificate
+// TODO - make configurable
 func NewSigner() *Signer {
 	// start by creating a 2048-bit RSA public/private key pair
 	private, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -115,9 +115,6 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	//w.WriteHeader(http.StatusOK)
-	//w.Write([]byte(base64.StdEncoding.EncodeToString(cert)))
 }
 
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {

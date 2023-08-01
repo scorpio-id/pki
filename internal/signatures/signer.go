@@ -73,12 +73,12 @@ type RequestCSR struct {
 
 // Handler for Certificate Signing Requests
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
-	matched, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
+	match, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if !matched {
+	if !match {
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		return
 	}

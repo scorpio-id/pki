@@ -45,7 +45,7 @@ func NewSigner() *Signer {
 
 	return &Signer{
 		Certificate: x509,
-		private: private,
+		private:     private,
 	}
 
 }
@@ -57,61 +57,58 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 }
 
 // TODO - should check required fields of CSR before signing, as well as any security policy (ie: no *.com)
-func (s *Signer) ValidateCSR(csr []byte) {
-	// parsed, err := x509.ParseCertificateRequest(csr)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+func (s *Signer) ValidateCSR(csr []byte) error {
+	_, err := x509.ParseCertificateRequest(csr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return err
+}
+
+type RequestCSR struct {
+	CertificateRequest string `json:"csr"`
 }
 
 // Handler for Certificate Signing Requests
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 
-	// if r.Header.Get("Content-Type") != "application/json" {
-	// 	w.WriteHeader(http.StatusUnsupportedMediaType)
-	// }
-
-	// TODO - accept PEM-encoded CSR string in JSON
-	// TODO - add config
-	csr, err := certificate.GenerateCSR([]string{"example.com", "*.example.com"})
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Fatal(err)
+	if r.Header.Get("Content-Type") != "multipart/form-data" {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
 	}
 
-	block := pem.Block{
-		Type:  "CERTIFICATE REQUEST",
-		Bytes: csr,
-	}
+	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
+	r.ParseMultipartForm(1000)
 
-	output := pem.EncodeToMemory(&block)
-	log.Print(string(output))
+	csr := r.FormValue("csr")
 
 	// 'csr' is ASN.1 DER data (the client gives a PEM-encoded CSR)
-	cert, err := s.CreateX509(csr)
+	block, _ := pem.Decode([]byte(csr))
+
+	cert, err := s.CreateX509(block.Bytes)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal(err)
 	}
 
 	// leaf certificate
-	block = pem.Block{
+	leaf := pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: cert,
 	}
 
-	err = pem.Encode(w, &block)
+	err = pem.Encode(w, &leaf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// add self-signed root ca
-	block = pem.Block{
-		Type: "CERTIFICATE",
+	root := pem.Block{
+		Type:  "CERTIFICATE",
 		Bytes: s.Certificate.Raw,
 	}
 
-	err = pem.Encode(w, &block)
+	err = pem.Encode(w, &root)
 	if err != nil {
 		log.Fatal(err)
 	}

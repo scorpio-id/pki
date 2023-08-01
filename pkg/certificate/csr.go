@@ -52,7 +52,7 @@ func Sign(csr []byte, private *rsa.PrivateKey) ([]byte, error) {
 	return cert, nil
 }
 
-// Generate creates a sample CSR for testing purposes
+// Generate creates a CSR
 func GenerateCSR(sans []string) ([]byte, error) {
 	// sample identity for CSR
 	sample, _ := rsa.GenerateKey(rand.Reader, 2048)

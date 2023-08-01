@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"log"
 	"net/http"
+	"regexp"
 
 	"encoding/pem"
 
@@ -15,11 +16,12 @@ import (
 // Generates RSA Public & Private Key Pair and signs
 // FIXME - needs to include self-signed cert for CA bundle
 type Signer struct {
-	private *rsa.PrivateKey
+	Certificate *x509.Certificate
+	private     *rsa.PrivateKey
 }
 
 // TODO - make bits configurable!
-// TODO - generate root certificate
+// TODO - make configurable
 func NewSigner() *Signer {
 	// start by creating a 2048-bit RSA public/private key pair
 	private, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -27,10 +29,24 @@ func NewSigner() *Signer {
 		log.Fatal(err)
 	}
 
-	// TODO - generate self-signed certificate
+	csr, err := certificate.GenerateCSR([]string{"scorpio.io", "*.scorpio.io"})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cert, err := certificate.Sign(csr, private)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	x509, err := x509.ParseCertificate(cert)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return &Signer{
-		private: private,
+		Certificate: x509,
+		private:     private,
 	}
 
 }
@@ -57,9 +73,14 @@ type RequestCSR struct {
 
 // Handler for Certificate Signing Requests
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
+	match, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	if r.Header.Get("Content-Type") != "multipart/form-data" {
+	if !match {
 		w.WriteHeader(http.StatusUnsupportedMediaType)
+		return
 	}
 
 	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
@@ -67,24 +88,36 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 
 	csr := r.FormValue("csr")
 
+	// 'block' is ASN.1 DER data (the client gives a PEM-encoded CSR)
 	block, _ := pem.Decode([]byte(csr))
-	
+
 	cert, err := s.CreateX509(block.Bytes)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal(err)
 	}
 
-	block2 := pem.Block{
+	// leaf certificate
+	leaf := pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: cert,
 	}
 
-	err = pem.Encode(w, &block2)
+	err = pem.Encode(w, &leaf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// add self-signed root (intermediate) ca
+	root := pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: s.Certificate.Raw,
+	}
+
+	err = pem.Encode(w, &root)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {

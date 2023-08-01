@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"log"
 	"net/http"
+	"regexp"
 
 	"encoding/pem"
 
@@ -72,9 +73,14 @@ type RequestCSR struct {
 
 // Handler for Certificate Signing Requests
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
+	matched, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	if r.Header.Get("Content-Type") != "multipart/form-data" {
+	if !matched {
 		w.WriteHeader(http.StatusUnsupportedMediaType)
+		return
 	}
 
 	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
@@ -82,7 +88,7 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 
 	csr := r.FormValue("csr")
 
-	// 'csr' is ASN.1 DER data (the client gives a PEM-encoded CSR)
+	// 'block' is ASN.1 DER data (the client gives a PEM-encoded CSR)
 	block, _ := pem.Decode([]byte(csr))
 
 	cert, err := s.CreateX509(block.Bytes)
@@ -102,7 +108,7 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	// add self-signed root ca
+	// add self-signed root (intermediate) ca
 	root := pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: s.Certificate.Raw,

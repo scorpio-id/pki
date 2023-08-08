@@ -42,7 +42,8 @@ func EncodePFX(private interface{}, certificate []byte, caCerts []byte)([]byte, 
 
 	p := uuid.New()
 
-	// TODO: USE UUID AS PASSWORD
+	// TODO: CONSIDER WHETHER PASSWORD SHOULD BE CONFIGURABLE 
+	// TODO: CONSIDER BUILDING ENCODE FUNCTION
 	pfxData, err := pkcs12.Encode(rand.Reader, private, parsedCert, []*x509.Certificate{parsedCACert},  "")
 	return pfxData, p.String(), err
 }

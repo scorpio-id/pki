@@ -140,6 +140,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal(err)
 	}
+	// FIXME: Give just strings for specified SANS
 	cr := r.FormValue("cr")
 
 	private, err := rsa.GenerateKey(rand.Reader, 2048)

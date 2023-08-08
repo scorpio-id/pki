@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 
 	"github.com/scorpio-id/pki/pkg/certificate"
+
 )
 
 // Generates RSA Public & Private Key Pair and signs
@@ -67,24 +68,35 @@ func (s *Signer) ValidateCSR(csr []byte) error {
 	return err
 }
 
-type RequestCSR struct {
-	CertificateRequest string `json:"csr"`
-}
-
-// Handler for Certificate Signing Requests
-func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
+func verifyMultipartForm(w http.ResponseWriter, r *http.Request) error{
 	match, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if !match {
-		w.WriteHeader(http.StatusUnsupportedMediaType)
-		return
+		return http.ErrBodyNotAllowed
 	}
 
 	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
 	r.ParseMultipartForm(1000)
+
+	return nil
+}
+
+type RequestCSR struct {
+	CertificateRequest string `json:"csr"`
+}
+
+
+// Handler for Certificate Signing Requests
+func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
+
+	err := verifyMultipartForm(w, r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Fatal(err)
+	}
 
 	csr := r.FormValue("csr")
 
@@ -119,6 +131,60 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 }
+
+
+// Handler for PKCS12 Request
+func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
+	err := verifyMultipartForm(w, r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Fatal(err)
+	}
+	// FIXME: Give just strings for specified SANS
+	cr := r.FormValue("cr")
+
+	private, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	block, _ := pem.Decode([]byte(cr))
+
+	csr, err := certificate.InsertKeyCSR(block.Bytes, private)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cert, err := s.CreateX509(csr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Fatal(err)
+	}
+
+	caCert := s.Certificate.Raw
+
+	// Returns DER Encoded PKCS12 file
+	pfxData, _, err := certificate.EncodePFX(private, cert, caCert)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Fatal(err)
+	}
+
+
+	w.WriteHeader(http.StatusOK)
+
+	pkcs12 := pem.Block{
+		Type:  "PKCS12",
+		Bytes:pfxData,
+	}
+
+	err = pem.Encode(w, &pkcs12)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
 
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	public, err := x509.MarshalPKIXPublicKey(&s.private.PublicKey)

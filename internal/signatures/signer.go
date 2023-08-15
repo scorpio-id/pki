@@ -5,57 +5,73 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"log"
+	"math/big"
 	"net/http"
 	"regexp"
+	"time"
 
 	"encoding/pem"
 
+	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/pkg/certificate"
-
 )
 
 // Generates RSA Public & Private Key Pair and signs
 // FIXME - needs to include self-signed cert for CA bundle
 type Signer struct {
-	Certificate *x509.Certificate
-	private     *rsa.PrivateKey
+	AllowedSANs         []string
+	Duration            time.Duration
+	CurrentSerialNumber *big.Int
+	Certificate         *x509.Certificate
+	private             *rsa.PrivateKey
 }
 
-// TODO - make bits configurable!
-// TODO - make configurable
-func NewSigner() *Signer {
+func NewSigner(cfg config.Config) *Signer {
 	// start by creating a 2048-bit RSA public/private key pair
-	private, err := rsa.GenerateKey(rand.Reader, 2048)
+	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	csr, err := certificate.GenerateCSR([]string{"scorpio.io", "*.scorpio.io"})
+	csr, err := certificate.GenerateCSR(cfg.PKI.CertificateAuthority)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cert, err := certificate.Sign(csr, private)
+	serial := big.NewInt(int64(cfg.PKI.SerialNumber))
+	duration, err := time.ParseDuration(cfg.PKI.CertificateTTL)
+	cert, err := certificate.Sign(csr, private, serial, duration)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// add one to current serial number
+	serial.Add(serial, big.NewInt(1))
 
 	x509, err := x509.ParseCertificate(cert)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// TODO - create SAN store and attach here
 	return &Signer{
-		Certificate: x509,
-		private:     private,
+		AllowedSANs:         cfg.PKI.AllowedSANs,
+		Duration:            duration,
+		CurrentSerialNumber: serial,
+		Certificate:         x509,
+		private:             private,
 	}
 
 }
 
-// TODO - should accept a CSR (PEM-ecoded)
+// CreateX509 allows the signer to generate a signed X.509 based off configurations and while keeping track of serial number
 func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
-	// FIXME - call ValidateCSR() ...
-	return certificate.Sign(csr, s.private)
+	// TODO - call ValidateCSR() ...
+
+	// increment serial number (need mutex here?)
+	defer s.CurrentSerialNumber.Add(s.CurrentSerialNumber, big.NewInt(1))
+
+	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration)
 }
 
 // TODO - should check required fields of CSR before signing, as well as any security policy (ie: no *.com)
@@ -68,7 +84,7 @@ func (s *Signer) ValidateCSR(csr []byte) error {
 	return err
 }
 
-func verifyMultipartForm(w http.ResponseWriter, r *http.Request) error{
+func verifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
 	match, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
 	if err != nil {
 		log.Fatal(err)
@@ -87,7 +103,6 @@ func verifyMultipartForm(w http.ResponseWriter, r *http.Request) error{
 type RequestCSR struct {
 	CertificateRequest string `json:"csr"`
 }
-
 
 // Handler for Certificate Signing Requests
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +151,6 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
 // Handler for PKCS12 Request
 func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	err := verifyMultipartForm(w, r)
@@ -174,12 +188,11 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-
 	w.WriteHeader(http.StatusOK)
 
 	pkcs12 := pem.Block{
 		Type:  "PKCS12",
-		Bytes:pfxData,
+		Bytes: pfxData,
 	}
 
 	err = pem.Encode(w, &pkcs12)
@@ -188,7 +201,6 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-
 
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	public, err := x509.MarshalPKIXPublicKey(&s.private.PublicKey)

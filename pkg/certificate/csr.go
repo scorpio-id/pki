@@ -47,9 +47,9 @@ func Sign(csr []byte, private *rsa.PrivateKey, serial *big.Int, duration time.Du
 }
 
 // Generate creates a CSR
-func GenerateCSR(sans []string) ([]byte, error) {
-	// sample identity for CSR
-	sample, _ := rsa.GenerateKey(rand.Reader, 2048)
+func GenerateCSR(sans []string, bits int) ([]byte, error) {
+	// identity for CSR
+	sample, _ := rsa.GenerateKey(rand.Reader, bits)
 
 	// 1 is RSA
 	template := x509.CertificateRequest{

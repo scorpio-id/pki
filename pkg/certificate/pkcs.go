@@ -11,8 +11,8 @@ import (
 
 // Generates CSR after parsing certificate request and then embeding public key within request
 // <cr> must be DER Encoded
-func InsertKeyCSR(cr []byte, private *rsa.PrivateKey)([]byte, error){
-	request, err := x509.ParseCertificateRequest(cr)
+func InsertKeyCSR(csr []byte, private *rsa.PrivateKey)([]byte, error){
+	request, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
 		return nil, err
 	}
@@ -21,9 +21,7 @@ func InsertKeyCSR(cr []byte, private *rsa.PrivateKey)([]byte, error){
 		DNSNames:  request.DNSNames,
 	}
 
-	csr, err := x509.CreateCertificateRequest(rand.Reader,&template, private)
-
-	return csr, err
+	return x509.CreateCertificateRequest(rand.Reader,&template, private)
 }
 
 

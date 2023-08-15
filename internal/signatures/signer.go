@@ -16,8 +16,7 @@ import (
 	"github.com/scorpio-id/pki/pkg/certificate"
 )
 
-// Generates RSA Public & Private Key Pair and signs
-// FIXME - needs to include self-signed cert for CA bundle
+// Generates RSA Public & Private Key Pair and signs X.509 certificates
 type Signer struct {
 	RSABits             int
 	CSRMaxMemory        int
@@ -35,7 +34,7 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
-	csr, err := certificate.GenerateCSR(cfg.PKI.CertificateAuthority)
+	csr, err := certificate.GenerateCSR(cfg.PKI.CertificateAuthority, cfg.PKI.RSABits)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,7 +64,6 @@ func NewSigner(cfg config.Config) *Signer {
 		Certificate:         x509,
 		private:             private,
 	}
-
 }
 
 // CreateX509 allows the signer to generate a signed X.509 based off configurations and while keeping track of serial number
@@ -166,6 +164,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// FIXME - do we need to do this to get duplicate query params?
 	var sans []string
 	for k, v := range values {
 		if k == "san" {
@@ -173,7 +172,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	csr, err := certificate.GenerateCSR(sans)
+	csr, err := certificate.GenerateCSR(sans, s.RSABits)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
@@ -215,7 +214,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// PublicHandler returns the public key of the Certificate Authority
+// PublicHandler returns the public key of the certificate authority
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO - return JSON (JWKS?) representation
 	public, err := x509.MarshalPKIXPublicKey(&s.private.PublicKey)

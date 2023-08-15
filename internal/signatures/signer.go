@@ -199,6 +199,11 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
+	// TODO - support JSON responses
+	if r.Header.Get("Accept") == "application/json" {
+		// some function to return JSON content for X.509 or PKCS
+	}
+
 	pkcs12 := pem.Block{
 		Type:  "PKCS12",
 		Bytes: pfxData,

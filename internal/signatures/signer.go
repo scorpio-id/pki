@@ -92,6 +92,10 @@ type RequestCSR struct {
 // Handler for Certificate Signing Requests
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 
+	if r.Header.Get("Accept") == "application/json" {
+		// some function to return JSON content for X.509 or PKCS
+	}
+
 	err := verifyMultipartForm(w, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

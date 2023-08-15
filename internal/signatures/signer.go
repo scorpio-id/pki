@@ -121,6 +121,8 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		// some function to return JSON content for X.509 or PKCS
 	}
 
+	w.Header().Set("Content-Type", "application/octet-stream")
+
 	cert, err := s.CreateX509(block.Bytes)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -202,6 +204,8 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Accept") == "application/json" {
 		// some function to return JSON content for X.509 or PKCS
 	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
 
 	pkcs12 := pem.Block{
 		Type:  "PKCS12",

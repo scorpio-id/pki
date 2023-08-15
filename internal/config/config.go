@@ -16,6 +16,7 @@ type Config struct {
 	PKI struct {
 		RSABits              int      `yaml:"rsa_bits"`
 		SerialNumber         int      `yaml:"serial_number"`
+		CSRMaxMemory         int      `yaml:"csr_max_memory"`
 		CertificateTTL       string   `yaml:"certificate_ttl"`
 		CertificateAuthority []string `yaml:"certificate_authority"`
 		AllowedSANs          []string `yaml:"allowed_sans"`

@@ -19,6 +19,8 @@ import (
 // Generates RSA Public & Private Key Pair and signs
 // FIXME - needs to include self-signed cert for CA bundle
 type Signer struct {
+	RSABits             int
+	CSRMaxMemory        int
 	AllowedSANs         []string
 	Duration            time.Duration
 	CurrentSerialNumber *big.Int
@@ -55,6 +57,8 @@ func NewSigner(cfg config.Config) *Signer {
 
 	// TODO - create SAN store and attach here
 	return &Signer{
+		RSABits:             cfg.PKI.RSABits,
+		CSRMaxMemory:        cfg.PKI.CSRMaxMemory,
 		AllowedSANs:         cfg.PKI.AllowedSANs,
 		Duration:            duration,
 		CurrentSerialNumber: serial,
@@ -84,7 +88,7 @@ func (s *Signer) ValidateCSR(csr []byte) error {
 	return err
 }
 
-func verifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
+func (s *Signer) verifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
 	match, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
 	if err != nil {
 		log.Fatal(err)
@@ -95,23 +99,15 @@ func verifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
-	r.ParseMultipartForm(1000)
+	r.ParseMultipartForm(int64(s.CSRMaxMemory))
 
 	return nil
 }
 
-type RequestCSR struct {
-	CertificateRequest string `json:"csr"`
-}
-
-// Handler for Certificate Signing Requests
+// CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
-
-	if r.Header.Get("Accept") == "application/json" {
-		// some function to return JSON content for X.509 or PKCS
-	}
-
-	err := verifyMultipartForm(w, r)
+	// verify boundary of multipart form data request
+	err := s.verifyMultipartForm(w, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal(err)
@@ -121,6 +117,11 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 'block' is ASN.1 DER data (the client gives a PEM-encoded CSR)
 	block, _ := pem.Decode([]byte(csr))
+
+	// TODO - support JSON responses
+	if r.Header.Get("Accept") == "application/json" {
+		// some function to return JSON content for X.509 or PKCS
+	}
 
 	cert, err := s.CreateX509(block.Bytes)
 	if err != nil {
@@ -151,24 +152,34 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handler for PKCS12 Request
+// PKCSHandler accepts SAN data and returns a PKCS12 file or JSON content given HTTP Accept header
 func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
-	err := verifyMultipartForm(w, r)
+	// generate new RSA identity for PKCS12
+	private, err := rsa.GenerateKey(rand.Reader, s.RSABits)
 	if err != nil {
+		log.Fatal(err)
+	}
+
+	values := r.URL.Query()
+	if values == nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Fatal(err)
+		return
 	}
-	// FIXME: Give just strings for specified SANS
-	cr := r.FormValue("cr")
 
-	private, err := rsa.GenerateKey(rand.Reader, 2048)
+	var sans []string
+	for k, v := range values {
+		if k == "san" {
+			sans = v
+		}
+	}
+
+	csr, err := certificate.GenerateCSR(sans)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
-	block, _ := pem.Decode([]byte(cr))
-
-	csr, err := certificate.InsertKeyCSR(block.Bytes, private)
+	csr, err = certificate.InsertKeyCSR(csr, private)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -181,14 +192,12 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 
 	caCert := s.Certificate.Raw
 
-	// Returns DER Encoded PKCS12 file
+	// returns DER-encoded PKCS12 file
 	pfxData, _, err := certificate.EncodePFX(private, cert, caCert)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal(err)
 	}
-
-	w.WriteHeader(http.StatusOK)
 
 	pkcs12 := pem.Block{
 		Type:  "PKCS12",
@@ -199,10 +208,11 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
+// PublicHandler returns the public key of the Certificate Authority
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO - return JSON (JWKS?) representation
 	public, err := x509.MarshalPKIXPublicKey(&s.private.PublicKey)
 	if err != nil {
 		log.Fatal(err)

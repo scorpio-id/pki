@@ -6,9 +6,10 @@ server:
 pki:
   rsa_bits: 2048
   serial_number: 1000
+  csr_max_memory: 1024
   certificate_ttl: "60m"
   certificate_authority: 
     - "scorpio.io"
     - "*.scorpio.io"
   allowed_sans:
-    - ".*\.scorpio\.io"
+    - ".*\\.scorpio\\.io"

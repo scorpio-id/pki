@@ -9,29 +9,23 @@ import (
 	"time"
 )
 
-// Sign takes a private key and a CSR and produces a signed x.509 certificate
-// TODO - add CSR byte[] as input argument
-func Sign(csr []byte, private *rsa.PrivateKey) ([]byte, error) {
-	// Check CSR if SAN is taken
-	// Fail otherwise
-	// Create X.509 signed with Private keys
-
+// Sign takes a CSR, private key, serial number, and TTL duration; produces a signed x.509 certificate
+func Sign(csr []byte, private *rsa.PrivateKey, serial *big.Int, duration time.Duration) ([]byte, error) {
 	// parse CSR into template
 	request, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// TODO copy request contents into new cert template?
-	// after is two years past the current date
+	// compute TTL
 	t := time.Now()
-	after := t.AddDate(2, 0, 0)
+	after := t.Add(duration)
 
 	template := x509.Certificate{
 		DNSNames:  request.DNSNames,
 		NotAfter:  after,
 		NotBefore: t,
-		SerialNumber: big.NewInt(1),
+		SerialNumber: serial,
 	}
 
 	// FIXME - sample public key here, normally extract public key from CSR
@@ -42,20 +36,20 @@ func Sign(csr []byte, private *rsa.PrivateKey) ([]byte, error) {
 	}
 
 	// 'parsed' is a populated *Certificate struct (for example purposes)
-	parsed, err := x509.ParseCertificate(cert)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// parsed, err := x509.ParseCertificate(cert)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	log.Print(parsed.DNSNames)
+	// log.Print(parsed.DNSNames)
 
 	return cert, nil
 }
 
 // Generate creates a CSR
-func GenerateCSR(sans []string) ([]byte, error) {
-	// sample identity for CSR
-	sample, _ := rsa.GenerateKey(rand.Reader, 2048)
+func GenerateCSR(sans []string, bits int) ([]byte, error) {
+	// identity for CSR
+	sample, _ := rsa.GenerateKey(rand.Reader, bits)
 
 	// 1 is RSA
 	template := x509.CertificateRequest{

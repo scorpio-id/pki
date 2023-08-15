@@ -11,8 +11,8 @@ import (
 
 // Generates CSR after parsing certificate request and then embeding public key within request
 // <cr> must be DER Encoded
-func InsertKeyCSR(cr []byte, private *rsa.PrivateKey)([]byte, error){
-	request, err := x509.ParseCertificateRequest(cr)
+func InsertKeyCSR(csr []byte, private *rsa.PrivateKey) ([]byte, error){
+	request, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
 		return nil, err
 	}
@@ -21,21 +21,19 @@ func InsertKeyCSR(cr []byte, private *rsa.PrivateKey)([]byte, error){
 		DNSNames:  request.DNSNames,
 	}
 
-	csr, err := x509.CreateCertificateRequest(rand.Reader,&template, private)
-
-	return csr, err
+	return x509.CreateCertificateRequest(rand.Reader,&template, private)
 }
 
 
 // Generates DER Encoded PFX file using passed in private keys and certificates
-func EncodePFX(private interface{}, certificate []byte, caCerts []byte)([]byte, string, error){
+func EncodePFX(private interface{}, certificate []byte, intermediates []byte) ([]byte, string, error){
 
-	parsedCert, err := x509.ParseCertificate(certificate)
+	parsed, err := x509.ParseCertificate(certificate)
 	if err != nil {
 		return nil, "", err
 	}
 
-	parsedCACert, err := x509.ParseCertificate(caCerts)
+	intermediate, err := x509.ParseCertificate(intermediates)
 	if err != nil {
 		return nil, "", err
 	}
@@ -44,6 +42,6 @@ func EncodePFX(private interface{}, certificate []byte, caCerts []byte)([]byte, 
 
 	// TODO: CONSIDER WHETHER PASSWORD SHOULD BE CONFIGURABLE 
 	// TODO: CONSIDER BUILDING ENCODE FUNCTION
-	pfxData, err := pkcs12.Encode(rand.Reader, private, parsedCert, []*x509.Certificate{parsedCACert},  "")
-	return pfxData, p.String(), err
+	pfx, err := pkcs12.Encode(rand.Reader, private, parsed, []*x509.Certificate{intermediate},  "")
+	return pfx, p.String(), err
 }

@@ -189,10 +189,10 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	caCert := s.Certificate.Raw
+	intermediate := s.Certificate.Raw
 
 	// returns DER-encoded PKCS12 file
-	pfxData, _, err := certificate.EncodePFX(private, cert, caCert)
+	pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal(err)
@@ -205,7 +205,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 
 	pkcs12 := pem.Block{
 		Type:  "PKCS12",
-		Bytes: pfxData,
+		Bytes: pfx,
 	}
 
 	err = pem.Encode(w, &pkcs12)

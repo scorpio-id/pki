@@ -3,76 +3,62 @@ package data
 // used to store SANs <-> public key
 
 import (
+	"fmt"
 	"math/big"
-	"net"
-	"net/url"
 	"sync"
 )
 
-type SubjectAlternateNameData struct {
-	SerialNumber      big.Int
-	SubAlternateNames []string
-	DNSNames          []string //are probably the SubAlternateNames
-	EmailAddresses    []string
-	IPAddresses       []net.IP
-	URIs              []*url.URL
-}
-type SubjectAlternateNameDataStore struct {
-	SubjectAlternateNameData []SubjectAlternateNameData //names TODO
-	mu                       sync.Mutex
+type SANs struct {
+	SerialNumber *big.Int
+	Names        []string
 }
 
-func NewSubjectAlternateNameDataStore() SubjectAlternateNameDataStore {
-	return SubjectAlternateNameDataStore{
-		SubjectAlternateNameData: make([]SubjectAlternateNameData, 0),
+type SubjectAlternateNameStore struct {
+	Data []SANs
+	mu   sync.Mutex
+}
+
+func NewSubjectAlternateNameStore() SubjectAlternateNameStore {
+	return SubjectAlternateNameStore{
+		Data: make([]SANs, 0),
 	}
 }
 
-func (s *SubjectAlternateNameDataStore) Add(d SubjectAlternateNameData) {
+func (s *SubjectAlternateNameStore) Add(d SANs) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.SubjectAlternateNameData = append(s.SubjectAlternateNameData, d)
+	// check to make sure SAN is unique
+	for _, data := range s.Data {
+		for _, san := range data.Names {
+			for _, name := range d.Names {
+				if name == san {
+					return fmt.Errorf("subject alternate name [%v] is already in use", san)
+				}
+			}
+		}
+	}
+
+	// check to make sure serial number unique
+	for _, data := range s.Data {
+		if data.SerialNumber.Cmp(d.SerialNumber) == 0 {
+			return fmt.Errorf("serial number [%v] is not unique", d.SerialNumber)
+		}
+	}
+
+	s.Data = append(s.Data, d)
+	return nil
 }
 
-func (s *SubjectAlternateNameDataStore) Delete(san string) {
+func (s *SubjectAlternateNameStore) Delete(san string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for x, v := range s.SubjectAlternateNameData {
-		for _, j := range v.SubAlternateNames {
+	for x, v := range s.Data {
+		for _, j := range v.Names {
 			if san == j {
-				s.SubjectAlternateNameData = append(s.SubjectAlternateNameData[:x], s.SubjectAlternateNameData[x+1:]...)
+				s.Data = append(s.Data[:x], s.Data[x+1:]...)
 			}
 		}
 	}
 }
-
-//in 'interactions.go' Usercode string was used, tried to do DNSnames to match?
-// func (s *SubjectAlternateNameDataStore) Retrieve(san string) (interface{}, error) {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
-
-// 	for _, v := range s.SubjectAlternateNameData{
-// 			if v.DNSNames == DNSNames && !v.IsExpired() {
-// 				return v, nil
-// 			}
-// 	}
-
-// 	return nil, errors.New("no such interaction")
-// }
-
-//END OF INTERACTIONS.GO, CHECKING WITH TEAM ON NEXT STEPS
-
-// func (s *InteractionStore) RetrieveAuthorization(client string, code string) (interface{}, error) {
-// 	s.mu.RLock()
-// 	defer s.mu.RUnlock()
-
-// 	for _, v := range s.Interactions {
-// 		if v.AuthorizationCode == code && v.ClientID == client && !v.IsExpired() {
-// 			return v, nil
-// 		}
-// 	}
-
-// 	return nil, errors.New("no such interaction")
-// }

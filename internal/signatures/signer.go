@@ -13,6 +13,7 @@ import (
 	"encoding/pem"
 
 	"github.com/scorpio-id/pki/internal/config"
+	"github.com/scorpio-id/pki/internal/data"
 	"github.com/scorpio-id/pki/pkg/certificate"
 )
 
@@ -25,6 +26,7 @@ type Signer struct {
 	CurrentSerialNumber *big.Int
 	Certificate         *x509.Certificate
 	private             *rsa.PrivateKey
+	Store               data.SubjectAlternateNameStore
 }
 
 func NewSigner(cfg config.Config) *Signer {
@@ -63,6 +65,7 @@ func NewSigner(cfg config.Config) *Signer {
 		CurrentSerialNumber: serial,
 		Certificate:         x509,
 		private:             private,
+		Store:               data.NewSubjectAlternateNameStore(),
 	}
 }
 
@@ -72,6 +75,21 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 
 	// increment serial number (need mutex here?)
 	defer s.CurrentSerialNumber.Add(s.CurrentSerialNumber, big.NewInt(1))
+
+	content, err := x509.ParseCertificateRequest(csr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	san := data.SANs {
+		SerialNumber: s.CurrentSerialNumber,
+		Names: content.DNSNames,
+	}
+
+	err = s.Store.Add(san)
+	if err != nil {
+		return nil, err
+	}
 
 	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration)
 }

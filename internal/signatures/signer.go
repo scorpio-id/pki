@@ -81,9 +81,9 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		log.Fatal(err)
 	}
 
-	san := data.SANs {
+	san := data.SANs{
 		SerialNumber: s.CurrentSerialNumber,
-		Names: content.DNSNames,
+		Names:        content.DNSNames,
 	}
 
 	err = s.Store.Add(san)

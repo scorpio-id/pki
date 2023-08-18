@@ -136,6 +136,10 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	csr := r.FormValue("csr")
+	if csr == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	// FIXME: if csr is nil, return bad request
 
 	// 'block' is ASN.1 DER data (the client gives a PEM-encoded CSR)

@@ -29,6 +29,7 @@ func (s *SubjectAlternateNameStore) Add(d SANs) error {
 	defer s.mu.Unlock()
 
 	// check to make sure SAN is unique
+	// FIXME - for example, if *.example.com is within, don't allow test.example.com
 	for _, data := range s.Data {
 		for _, san := range data.Names {
 			for _, name := range d.Names {

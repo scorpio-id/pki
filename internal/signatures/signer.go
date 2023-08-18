@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"time"
 
+	"encoding/json"
 	"encoding/pem"
 
 	"github.com/scorpio-id/pki/internal/config"
@@ -27,6 +28,11 @@ type Signer struct {
 	Certificate         *x509.Certificate
 	private             *rsa.PrivateKey
 	Store               data.SubjectAlternateNameStore
+}
+
+type x509error struct {
+	Message   string `json:"message"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 func NewSigner(cfg config.Config) *Signer {
@@ -130,6 +136,7 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	csr := r.FormValue("csr")
+	// FIXME: if csr is nil, return bad request
 
 	// 'block' is ASN.1 DER data (the client gives a PEM-encoded CSR)
 	block, _ := pem.Decode([]byte(csr))
@@ -139,12 +146,21 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		// some function to return JSON content for X.509 or PKCS
 	}
 
-	w.Header().Set("Content-Type", "application/octet-stream")
-
 	cert, err := s.CreateX509(block.Bytes)
 	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		log.Fatal(err)
+		// create a x509 error, marshall into json, and return
+		x509err := x509error{
+			Message:   err.Error(),
+			Timestamp: time.Now().Unix(),
+		}
+		b, err := json.Marshal(x509err)
+		if err != nil {
+			log.Fatal(err)
+		}
+		w.Write(b)
+		return
 	}
 
 	// leaf certificate
@@ -168,6 +184,8 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
 }
 
 // PKCSHandler accepts SAN data and returns a PKCS12 file or JSON content given HTTP Accept header

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"fmt"
 	"log"
 	"math/big"
 	"net/http"
@@ -120,9 +121,6 @@ func (s *Signer) verifyMultipartForm(w http.ResponseWriter, r *http.Request) err
 		return http.ErrBodyNotAllowed
 	}
 
-	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
-	r.ParseMultipartForm(int64(s.CSRMaxMemory))
-
 	return nil
 }
 
@@ -135,8 +133,18 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	csr := r.FormValue("csr")
+	fmt.Println(r.Header.Get("Content-Type"))
+
+	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
+	err = r.ParseMultipartForm(int64(s.CSRMaxMemory))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+	}
+
+	csr := r.PostForm.Get("csr")
 	if csr == "" {
+		fmt.Println("the csr is blank")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

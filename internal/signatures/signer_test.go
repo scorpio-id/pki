@@ -1,11 +1,11 @@
 package signatures
 
 import (
+	"bytes"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/scorpio-id/pki/internal/config"
@@ -45,16 +45,20 @@ func TestSignX509Certificate(t *testing.T) {
 	defer server.Close()
 
 	client := http.Client{}
-	form := url.Values{}
 
-	req, err := http.NewRequest("POST", server.URL+"/certificate", strings.NewReader(form.Encode()))
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	writer.WriteField("csr", CSR)
+
+	writer.Close()
+
+	req, err := http.NewRequest("POST", server.URL+"/certificate", &buf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	req.PostForm.Add("csr", CSR)
-
-	req.Header.Add("Content-Type", "multipart/form-data; boundary=1024")
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	response, err := client.Do(req)
 	if err != nil {
@@ -62,5 +66,4 @@ func TestSignX509Certificate(t *testing.T) {
 	}
 
 	log.Print(response.StatusCode)
-
 }

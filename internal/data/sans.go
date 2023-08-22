@@ -5,6 +5,8 @@ package data
 import (
 	"fmt"
 	"math/big"
+	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -24,41 +26,53 @@ func NewSubjectAlternateNameStore() SubjectAlternateNameStore {
 	}
 }
 
-func (s *SubjectAlternateNameStore) Add(d SANs) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (store *SubjectAlternateNameStore) Add(s SANs) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
 
-	// check to make sure SAN is unique
-	// FIXME - for example, if *.example.com is within, don't allow test.example.com
-	for _, data := range s.Data {
+	// ensure SAN is free
+	for _, data := range store.Data {
 		for _, san := range data.Names {
-			for _, name := range d.Names {
+			for _, name := range s.Names {
 				if name == san {
 					return fmt.Errorf("subject alternate name [%v] is already in use", san)
+				}
+
+				// if current SAN contains a wildcard create regex and match
+				if strings.Contains(san, "*") {
+					// ex: *.test.com must become regex .*.test.com
+					match, err := regexp.MatchString("."+san, name)
+					if err != nil {
+						return err
+					}
+
+					if match {
+						return fmt.Errorf("subject alternate name [%v] is already in use by [%v]", name, san)
+					}
 				}
 			}
 		}
 	}
 
-	// check to make sure serial number unique
-	for _, data := range s.Data {
-		if data.SerialNumber.Cmp(d.SerialNumber) == 0 {
-			return fmt.Errorf("serial number [%v] is not unique", d.SerialNumber)
+	// ensure serial number unique
+	for _, data := range store.Data {
+		if data.SerialNumber.Cmp(s.SerialNumber) == 0 {
+			return fmt.Errorf("serial number [%v] is not unique", s.SerialNumber)
 		}
 	}
 
-	s.Data = append(s.Data, d)
+	store.Data = append(store.Data, s)
 	return nil
 }
 
-func (s *SubjectAlternateNameStore) Delete(san string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (store *SubjectAlternateNameStore) Delete(san string) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
 
-	for x, v := range s.Data {
+	for x, v := range store.Data {
 		for _, j := range v.Names {
 			if san == j {
-				s.Data = append(s.Data[:x], s.Data[x+1:]...)
+				store.Data = append(store.Data[:x], store.Data[x+1:]...)
 			}
 		}
 	}

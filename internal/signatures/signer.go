@@ -4,14 +4,12 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"fmt"
 	"log"
 	"math/big"
 	"net/http"
 	"regexp"
 	"time"
 
-	"encoding/json"
 	"encoding/pem"
 
 	"github.com/scorpio-id/pki/internal/config"
@@ -29,11 +27,6 @@ type Signer struct {
 	Certificate         *x509.Certificate
 	private             *rsa.PrivateKey
 	Store               data.SubjectAlternateNameStore
-}
-
-type x509error struct {
-	Message   string `json:"message"`
-	Timestamp int64  `json:"timestamp"`
 }
 
 func NewSigner(cfg config.Config) *Signer {
@@ -133,25 +126,22 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	fmt.Println(r.Header.Get("Content-Type"))
-
 	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
 	err = r.ParseMultipartForm(int64(s.CSRMaxMemory))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-        return
 	}
 
 	csr := r.PostForm.Get("csr")
 	if csr == "" {
-		fmt.Println("the csr is blank")
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		http.Error(w, "csr post form field is blank", http.StatusBadRequest)
 	}
-	// FIXME: if csr is nil, return bad request
 
 	// 'block' is ASN.1 DER data (the client gives a PEM-encoded CSR)
 	block, _ := pem.Decode([]byte(csr))
+
+	// return 'file' content type
+	w.Header().Set("Content-Type", "application/octet-stream")
 
 	// TODO - support JSON responses
 	if r.Header.Get("Accept") == "application/json" {
@@ -160,18 +150,7 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 
 	cert, err := s.CreateX509(block.Bytes)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		// create a x509 error, marshall into json, and return
-		x509err := x509error{
-			Message:   err.Error(),
-			Timestamp: time.Now().Unix(),
-		}
-		b, err := json.Marshal(x509err)
-		if err != nil {
-			log.Fatal(err)
-		}
-		w.Write(b)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -196,8 +175,6 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	w.Header().Set("Content-Type", "application/octet-stream")
 }
 
 // PKCSHandler accepts SAN data and returns a PKCS12 file or JSON content given HTTP Accept header
@@ -230,13 +207,13 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 
 	csr, err = certificate.InsertKeyCSR(csr, private)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
 	cert, err := s.CreateX509(csr)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
 	intermediate := s.Certificate.Raw
@@ -244,7 +221,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	// returns DER-encoded PKCS12 file
 	pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
@@ -273,6 +250,8 @@ func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
 
 	block := pem.Block{
 		Type:  "PUBLIC KEY",

@@ -35,7 +35,7 @@ func Sign(csr []byte, private *rsa.PrivateKey, serial *big.Int, duration time.Du
 		return nil, err
 	}
 
-	// 'parsed' is a populated *Certificate struct (for example purposes)
+	// parsed is a populated *Certificate struct (for example purposes)
 	// parsed, err := x509.ParseCertificate(cert)
 	// if err != nil {
 	// 	log.Fatal(err)

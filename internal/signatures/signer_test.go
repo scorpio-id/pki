@@ -2,7 +2,6 @@ package signatures
 
 import (
 	"bytes"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -51,19 +50,22 @@ func TestSignX509Certificate(t *testing.T) {
 
 	writer.WriteField("csr", CSR)
 
+	// writer must be closed to correctly calculate boundary in multipart form request header?
 	writer.Close()
 
 	req, err := http.NewRequest("POST", server.URL+"/certificate", &buf)
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	response, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
-	log.Print(response.StatusCode)
+	if response.StatusCode != 200 {
+		t.Fatalf("non-200 status code: [%v]", response.StatusCode)
+	}
 }

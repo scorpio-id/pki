@@ -33,6 +33,46 @@ lk+Ij1pb7T4Y7A==
 -----END NEW CERTIFICATE REQUEST-----`
 
 func TestSignX509Certificate(t *testing.T) {
+	// note that test.yml config has *.example.com as allowed SANs
+	cfg := config.NewConfig("../config/test.yml")
+
+	s := NewSigner(cfg)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/certificate", s.CSRHandler)
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	client := http.Client{}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	writer.WriteField("csr", CSR)
+
+	// writer must be closed to correctly calculate boundary in multipart form request header
+	writer.Close()
+
+	req, err := http.NewRequest("POST", server.URL+"/certificate", &buf)
+	if err != nil {
+		t.Error(err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	response, err := client.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if response.StatusCode != 200 {
+		t.Fatalf("non-200 status code: [%v]", response.StatusCode)
+	}
+}
+
+func TestSignX509CertificateDuplicateError(t *testing.T) {
+	// note that test.yml config has *.example.com as allowed SANs
 	cfg := config.NewConfig("../config/test.yml")
 
 	s := NewSigner(cfg)
@@ -60,12 +100,33 @@ func TestSignX509Certificate(t *testing.T) {
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
+	_, err = client.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// send duplicate request and assert error
+	buf.Reset()
+	writer.WriteField("csr", CSR)
+
+	// writer must be closed to correctly calculate boundary in multipart form request header?
+	writer.Close()
+
 	response, err := client.Do(req)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if response.StatusCode != 200 {
-		t.Fatalf("non-200 status code: [%v]", response.StatusCode)
+	if response.StatusCode != 400 {
+		t.Fatalf("non-400 status code: [%v]", response.StatusCode)
 	}
+}
+
+func TestSignX509CertificateWildcardDuplicateError(t *testing.T) {
+	// TODO - attempt to sign cert with fail.example.com while *.example.com is already registered
+	// create another CSR with desired san fail.example.com
+}
+
+func TestSignX509CertificateAllowedPolicyError(t *testing.T) {
+	// TODO - attempt to sign cert not explicitly allowed by policy configuration
 }

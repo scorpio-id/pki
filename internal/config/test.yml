@@ -12,4 +12,4 @@ pki:
     - "scorpio.io"
     - "*.scorpio.io"
   allowed_sans:
-    - ".*\\.scorpio\\.io"
+    - ".*\\.example\\.com"

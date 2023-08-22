@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"fmt"
 	"log"
 	"math/big"
 	"net/http"
@@ -71,7 +72,11 @@ func NewSigner(cfg config.Config) *Signer {
 
 // CreateX509 allows the signer to generate a signed X.509 based off configurations and while keeping track of serial number
 func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
-	// TODO - call ValidateCSR() ...
+	// ensure desired SAN is allowed per policy configuration
+	err := s.EnforceSANPolicy(csr)
+	if err != nil {
+		return nil, err
+	}
 
 	// increment serial number (need mutex here?)
 	defer s.CurrentSerialNumber.Add(s.CurrentSerialNumber, big.NewInt(1))
@@ -95,10 +100,26 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 }
 
 // TODO - should check required fields of CSR before signing, as well as any security policy (ie: no *.com)
-func (s *Signer) ValidateCSR(csr []byte) error {
-	_, err := x509.ParseCertificateRequest(csr)
+func (s *Signer) EnforceSANPolicy(csr []byte) error {
+	template, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	for _, san := range template.DNSNames {
+		allowed := false
+		for _, expression := range s.AllowedSANs {
+			match, err := regexp.MatchString(expression, san)
+			if err != nil {
+				return err
+			}
+			if match {
+				allowed = true
+			}
+		}
+		if !allowed {
+			return fmt.Errorf("san [%v] is not allowed by ca policy", san)
+		}
 	}
 
 	return err
@@ -126,19 +147,27 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	//FIXME: INVESTIGATE FORM DATA LIMITATIONS
+	// FIXME: INVESTIGATE FORM DATA LIMITATIONS
 	err = r.ParseMultipartForm(int64(s.CSRMaxMemory))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	csr := r.PostForm.Get("csr")
 	if csr == "" {
 		http.Error(w, "csr post form field is blank", http.StatusBadRequest)
+		return
 	}
 
 	// 'block' is ASN.1 DER data (the client gives a PEM-encoded CSR)
 	block, _ := pem.Decode([]byte(csr))
+
+	cert, err := s.CreateX509(block.Bytes)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	// return 'file' content type
 	w.Header().Set("Content-Type", "application/octet-stream")
@@ -146,12 +175,6 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO - support JSON responses
 	if r.Header.Get("Accept") == "application/json" {
 		// some function to return JSON content for X.509 or PKCS
-	}
-
-	cert, err := s.CreateX509(block.Bytes)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
 	}
 
 	// leaf certificate
@@ -214,6 +237,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	cert, err := s.CreateX509(csr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	intermediate := s.Certificate.Raw

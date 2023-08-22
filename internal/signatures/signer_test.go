@@ -10,6 +10,7 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 )
 
+// FIXME - this csr contains SANS test.example.com and *.example.com
 const CSR = `-----BEGIN NEW CERTIFICATE REQUEST-----
 MIIDZjCCAk4CAQAwADCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMbl
 UrNyz9CSQCZmomiOjrdVn9HiI+Tg13mtxaPEZCTwmO2w4YYKnNGiwpgTAP7JMr5n

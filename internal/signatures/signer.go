@@ -99,7 +99,7 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration)
 }
 
-// TODO - should check required fields of CSR before signing, as well as any security policy (ie: no *.com)
+// FIXME - we need to distinguish wildcard cert common names from SANs
 func (s *Signer) EnforceSANPolicy(csr []byte) error {
 	template, err := x509.ParseCertificateRequest(csr)
 	if err != nil {

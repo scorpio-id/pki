@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// FIXME - we need to add reasonable Common Names, separate wildcards from SANs, and add CA flag
 // Sign takes a CSR, private key, serial number, and TTL duration; produces a signed x.509 certificate
 func Sign(csr []byte, private *rsa.PrivateKey, serial *big.Int, duration time.Duration) ([]byte, error) {
 	// parse CSR into template

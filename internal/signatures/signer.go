@@ -69,7 +69,6 @@ func NewSigner(cfg config.Config) *Signer {
 	}
 }
 
-// FIXME - if CSR contains a DNS with * assign as common name; you can't have a wildcard in a SAN
 // CreateX509 allows the signer to generate a signed X.509 based off configurations and while keeping track of serial number
 func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	// ensure desired SAN is allowed per policy configuration
@@ -130,23 +129,10 @@ func (s *Signer) EnforceSANPolicy(csr []byte) error {
 	return err
 }
 
-func (s *Signer) verifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
-	match, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if !match {
-		return http.ErrBodyNotAllowed
-	}
-
-	return nil
-}
-
 // CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	// verify boundary of multipart form data request
-	err := s.verifyMultipartForm(w, r)
+	err := VerifyMultipartForm(w, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal(err)
@@ -291,4 +277,17 @@ func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func VerifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
+	match, err := regexp.MatchString("multipart/form-data; boundary=.*", r.Header.Get("Content-Type"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !match {
+		return http.ErrBodyNotAllowed
+	}
+
+	return nil
 }

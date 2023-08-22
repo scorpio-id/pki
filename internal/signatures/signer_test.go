@@ -12,7 +12,7 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 )
 
-// FIXME - this csr contains SANS test.example.com and *.example.com
+// this csr contains SANS test.example.com and *.example.com with no Common Name
 const CSR = `-----BEGIN NEW CERTIFICATE REQUEST-----
 MIIDZjCCAk4CAQAwADCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMbl
 UrNyz9CSQCZmomiOjrdVn9HiI+Tg13mtxaPEZCTwmO2w4YYKnNGiwpgTAP7JMr5n
@@ -99,7 +99,7 @@ func TestSignX509CertificateDuplicateError(t *testing.T) {
 
 	writer.WriteField("csr", CSR)
 
-	// writer must be closed to correctly calculate boundary in multipart form request header?
+	// writer must be closed to correctly calculate boundary in multipart form request header
 	writer.Close()
 
 	req, err := http.NewRequest("POST", server.URL+"/certificate", &buf)
@@ -118,7 +118,7 @@ func TestSignX509CertificateDuplicateError(t *testing.T) {
 	buf.Reset()
 	writer.WriteField("csr", CSR)
 
-	// writer must be closed to correctly calculate boundary in multipart form request header?
+	// writer must be closed to correctly calculate boundary in multipart form request header
 	writer.Close()
 
 	response, err := client.Do(req)

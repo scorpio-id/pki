@@ -12,7 +12,7 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 )
 
-// this csr contains SANS test.example.com and *.example.com with no Common Name
+// this CSR contains SANs test.example.com and *.example.com with no Common Name
 const CSR = `-----BEGIN NEW CERTIFICATE REQUEST-----
 MIIDZjCCAk4CAQAwADCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMbl
 UrNyz9CSQCZmomiOjrdVn9HiI+Tg13mtxaPEZCTwmO2w4YYKnNGiwpgTAP7JMr5n
@@ -142,6 +142,7 @@ func TestSignX509CertificateWildcardDuplicateError(t *testing.T) {
 	// create another CSR with desired san fail.example.com
 }
 
-func TestSignX509CertificateAllowedPolicyError(t *testing.T) {
+func TestSignX509CertificateNameAllowedPolicyError(t *testing.T) {
 	// TODO - attempt to sign cert not explicitly allowed by policy configuration
+	// create another CSR with desired san foo.bar
 }

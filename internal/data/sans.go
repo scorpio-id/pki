@@ -4,24 +4,23 @@ package data
 
 import (
 	"fmt"
-	"math/big"
 	"regexp"
 	"strings"
 	"sync"
 )
 
 type SANs struct {
-	SerialNumber *big.Int
+	SerialNumber int64
 	Names        []string
 }
 
 type SubjectAlternateNameStore struct {
 	Data []SANs
-	mu   *sync.Mutex
+	mu   sync.Mutex
 }
 
-func NewSubjectAlternateNameStore() SubjectAlternateNameStore {
-	return SubjectAlternateNameStore{
+func NewSubjectAlternateNameStore() *SubjectAlternateNameStore {
+	return &SubjectAlternateNameStore{
 		Data: make([]SANs, 0),
 	}
 }
@@ -34,7 +33,7 @@ func (store *SubjectAlternateNameStore) Add(s SANs) error {
 	for _, data := range store.Data {
 		for _, san := range data.Names {
 			for _, name := range s.Names {
-				if name == san {
+				if name == san && name != "" {
 					return fmt.Errorf("subject alternate name [%v] is already in use", san)
 				}
 
@@ -55,8 +54,8 @@ func (store *SubjectAlternateNameStore) Add(s SANs) error {
 	}
 
 	// ensure serial number unique
-	for _, data := range store.Data {
-		if data.SerialNumber.Cmp(s.SerialNumber) == 0 {
+	for _, san := range store.Data {
+		if san.SerialNumber == s.SerialNumber {
 			return fmt.Errorf("serial number [%v] is not unique", s.SerialNumber)
 		}
 	}

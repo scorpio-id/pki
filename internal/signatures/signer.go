@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log"
-	"math/big"
 	"net/http"
 	"regexp"
 	"time"
@@ -22,12 +21,12 @@ import (
 type Signer struct {
 	RSABits             int
 	CSRMaxMemory        int
+	CurrentSerialNumber int64
 	AllowedSANs         []string
 	Duration            time.Duration
-	CurrentSerialNumber *big.Int
 	Certificate         *x509.Certificate
 	private             *rsa.PrivateKey
-	Store               data.SubjectAlternateNameStore
+	Store               *data.SubjectAlternateNameStore
 }
 
 func NewSigner(cfg config.Config) *Signer {
@@ -42,9 +41,8 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
-	serial := big.NewInt(int64(cfg.PKI.SerialNumber))
 	duration, err := time.ParseDuration(cfg.PKI.CertificateTTL)
-	cert, err := certificate.Sign(csr, private, serial, duration)
+	cert, err := certificate.Sign(csr, private, cfg.PKI.SerialNumber, duration)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,15 +50,15 @@ func NewSigner(cfg config.Config) *Signer {
 	// create store and add own name to store
 	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
 	store := data.NewSubjectAlternateNameStore()
-	err = store.Add(data.SANs{
-		Names: []string{cfg.PKI.CertificateAuthority.CommonName},
-	})
+	ca := data.SANs{
+		SerialNumber: cfg.PKI.SerialNumber,
+		Names:        []string{cfg.PKI.CertificateAuthority.CommonName},
+	}
+
+	err = store.Add(ca)
 	if err != nil {
 		log.Fatalf("issue adding [%v] to blank SAN store", err)
 	}
-
-	// add one to current serial number
-	serial.Add(serial, big.NewInt(1))
 
 	x509, err := x509.ParseCertificate(cert)
 	if err != nil {
@@ -70,9 +68,9 @@ func NewSigner(cfg config.Config) *Signer {
 	return &Signer{
 		RSABits:             cfg.PKI.RSABits,
 		CSRMaxMemory:        cfg.PKI.CSRMaxMemory,
+		CurrentSerialNumber: cfg.PKI.SerialNumber,
 		AllowedSANs:         cfg.PKI.AllowedNames,
 		Duration:            duration,
-		CurrentSerialNumber: serial,
 		Certificate:         x509,
 		private:             private,
 		Store:               store,
@@ -82,7 +80,7 @@ func NewSigner(cfg config.Config) *Signer {
 // CreateX509 allows the signer to generate a signed X.509 based off configurations and while keeping track of serial number
 func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	// ensure desired SAN is allowed per policy configuration
-	err := s.EnforceSANPolicy(csr)
+	err := s.EnforceNamePolicy(csr)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +89,9 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// increment serial number
+	s.CurrentSerialNumber += 1
 
 	// the SAN store enforces all names be unique; add requested Common Name to requested SANs
 	names := append(content.DNSNames, content.Subject.CommonName)
@@ -105,14 +106,11 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// increment serial number (need mutex here?)
-	defer s.CurrentSerialNumber.Add(s.CurrentSerialNumber, big.NewInt(1))
-
 	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration)
 }
 
-// EnforceSANPolicy ensures that requested Common Name and SANs are within configured naming standards policy
-func (s *Signer) EnforceSANPolicy(csr []byte) error {
+// EnforceNamePolicy ensures that requested Common Name and SANs are within configured naming standards policy
+func (s *Signer) EnforceNamePolicy(csr []byte) error {
 	template, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
 		log.Fatal(err)

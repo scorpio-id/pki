@@ -17,12 +17,12 @@ type Config struct {
 	} `yaml:"server"`
 	PKI struct {
 		RSABits              int      `yaml:"rsa_bits"`
-		SerialNumber         int      `yaml:"serial_number"`
 		CSRMaxMemory         int      `yaml:"csr_max_memory"`
+		SerialNumber         int64    `yaml:"serial_number"`
 		CertificateTTL       string   `yaml:"certificate_ttl"`
 		AllowedNames         []string `yaml:"allowed_names"`
 		CertificateAuthority struct {
-			CommonName            string   `yaml:"common_name"`
+			CommonName string `yaml:"common_name"`
 		} `yaml:"certificate_authority"`
 	} `yaml:"pki"`
 }

@@ -12,4 +12,5 @@ pki:
     common_name: "scorpio.io"
   allowed_names:
     - ""
+    - ".*\\.scorpio\\.io"
     - ".*\\.example\\.com"

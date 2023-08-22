@@ -18,7 +18,7 @@ import (
 	"github.com/scorpio-id/pki/pkg/certificate"
 )
 
-// Generates RSA Public & Private Key Pair and signs X.509 certificates
+// Signer generates an RSA public, private key pair and signs X.509 certificates
 type Signer struct {
 	RSABits             int
 	CSRMaxMemory        int
@@ -49,6 +49,16 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
+	// create store and add own name to store
+	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
+	store := data.NewSubjectAlternateNameStore()
+	err = store.Add(data.SANs{
+		Names: []string{cfg.PKI.CertificateAuthority.CommonName},
+	})
+	if err != nil {
+		log.Fatalf("issue adding [%v] to blank SAN store", err)
+	}
+
 	// add one to current serial number
 	serial.Add(serial, big.NewInt(1))
 
@@ -65,7 +75,7 @@ func NewSigner(cfg config.Config) *Signer {
 		CurrentSerialNumber: serial,
 		Certificate:         x509,
 		private:             private,
-		Store:               data.NewSubjectAlternateNameStore(),
+		Store:               store,
 	}
 }
 
@@ -82,7 +92,7 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		log.Fatal(err)
 	}
 
-	// the SAN store enforces all names be unique; add requested common name to requested SANs
+	// the SAN store enforces all names be unique; add requested Common Name to requested SANs
 	names := append(content.DNSNames, content.Subject.CommonName)
 
 	san := data.SANs{

@@ -17,7 +17,7 @@ type SANs struct {
 
 type SubjectAlternateNameStore struct {
 	Data []SANs
-	mu   sync.Mutex
+	mu   *sync.Mutex
 }
 
 func NewSubjectAlternateNameStore() SubjectAlternateNameStore {

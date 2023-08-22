@@ -2,6 +2,8 @@ package signatures
 
 import (
 	"bytes"
+	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -68,6 +70,12 @@ func TestSignX509Certificate(t *testing.T) {
 	}
 
 	if response.StatusCode != 200 {
+		b, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Error(err)
+		}
+
+		log.Print(string(b))
 		t.Fatalf("non-200 status code: [%v]", response.StatusCode)
 	}
 }
@@ -119,6 +127,12 @@ func TestSignX509CertificateDuplicateError(t *testing.T) {
 	}
 
 	if response.StatusCode != 400 {
+		b, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Error(err)
+		}
+
+		log.Print(string(b))
 		t.Fatalf("non-400 status code: [%v]", response.StatusCode)
 	}
 }

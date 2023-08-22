@@ -7,6 +7,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TODO - add version property
+// TODO - add to OU, Region, etc to Certificate Authority struct
 // Config provides a template for marshalling .yml configuration files
 type Config struct {
 	Server struct {
@@ -18,8 +20,10 @@ type Config struct {
 		SerialNumber         int      `yaml:"serial_number"`
 		CSRMaxMemory         int      `yaml:"csr_max_memory"`
 		CertificateTTL       string   `yaml:"certificate_ttl"`
-		CertificateAuthority []string `yaml:"certificate_authority"`
-		AllowedSANs          []string `yaml:"allowed_sans"`
+		AllowedNames         []string `yaml:"allowed_names"`
+		CertificateAuthority struct {
+			CommonName            string   `yaml:"common_name"`
+		} `yaml:"certificate_authority"`
 	} `yaml:"pki"`
 }
 
@@ -29,10 +33,12 @@ func NewConfig(s string) Config {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer f.Close()
 
 	var cfg Config
 	decoder := yaml.NewDecoder(f)
+
 	err = decoder.Decode(&cfg)
 	if err != nil {
 		log.Fatal(err)

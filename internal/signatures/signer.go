@@ -31,13 +31,13 @@ type Signer struct {
 }
 
 func NewSigner(cfg config.Config) *Signer {
-	// start by creating a 2048-bit RSA public/private key pair
+	// start by creating a RSA public/private key pair
 	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	csr, err := certificate.GenerateCSR(cfg.PKI.CertificateAuthority, cfg.PKI.RSABits)
+	csr, err := certificate.GenerateCSR([]string{cfg.PKI.CertificateAuthority.CommonName}, cfg.PKI.RSABits)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,11 +57,10 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
-	// TODO - create SAN store and attach here
 	return &Signer{
 		RSABits:             cfg.PKI.RSABits,
 		CSRMaxMemory:        cfg.PKI.CSRMaxMemory,
-		AllowedSANs:         cfg.PKI.AllowedSANs,
+		AllowedSANs:         cfg.PKI.AllowedNames,
 		Duration:            duration,
 		CurrentSerialNumber: serial,
 		Certificate:         x509,
@@ -70,6 +69,7 @@ func NewSigner(cfg config.Config) *Signer {
 	}
 }
 
+// FIXME - if CSR contains a DNS with * assign as common name; you can't have a wildcard in a SAN
 // CreateX509 allows the signer to generate a signed X.509 based off configurations and while keeping track of serial number
 func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	// ensure desired SAN is allowed per policy configuration
@@ -78,17 +78,17 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// increment serial number (need mutex here?)
-	defer s.CurrentSerialNumber.Add(s.CurrentSerialNumber, big.NewInt(1))
-
 	content, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// the SAN store enforces all names be unique; add requested common name to requested SANs
+	names := append(content.DNSNames, content.Subject.CommonName)
+
 	san := data.SANs{
 		SerialNumber: s.CurrentSerialNumber,
-		Names:        content.DNSNames,
+		Names:        names,
 	}
 
 	err = s.Store.Add(san)
@@ -96,17 +96,22 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	// increment serial number (need mutex here?)
+	defer s.CurrentSerialNumber.Add(s.CurrentSerialNumber, big.NewInt(1))
+
 	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration)
 }
 
-// FIXME - we need to distinguish wildcard cert common names from SANs
+// EnforceSANPolicy ensures that requested Common Name and SANs are within configured naming standards policy
 func (s *Signer) EnforceSANPolicy(csr []byte) error {
 	template, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, san := range template.DNSNames {
+	names := append(template.DNSNames, template.Subject.CommonName)
+
+	for _, san := range names {
 		allowed := false
 		for _, expression := range s.AllowedSANs {
 			match, err := regexp.MatchString(expression, san)
@@ -118,7 +123,7 @@ func (s *Signer) EnforceSANPolicy(csr []byte) error {
 			}
 		}
 		if !allowed {
-			return fmt.Errorf("san [%v] is not allowed by ca policy", san)
+			return fmt.Errorf("name [%v] is prohibited by certificate authority policy", san)
 		}
 	}
 

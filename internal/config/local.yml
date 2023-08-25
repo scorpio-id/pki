@@ -11,6 +11,6 @@ pki:
   certificate_authority: 
     common_name: "scorpio.io"
   allowed_names:
-    - ""
+    - "^$"
     - ".*\\.scorpio\\.io"
     - ".*\\.example\\.com"

@@ -49,6 +49,19 @@ func (store *SubjectAlternateNameStore) Add(s SANs) error {
 						return fmt.Errorf("subject alternate name [%v] is already in use by [%v]", name, san)
 					}
 				}
+
+				// checks if an existing issued certificate has a SAN under the desired wildcard SAN
+				if strings.Contains(name, "*") {
+					// ex: *.test.com must become regex .*.test.com
+					match, err := regexp.MatchString("."+name, san)
+					if err != nil {
+						return err
+					}
+
+					if match {
+						return fmt.Errorf("subject alternate name [%v] is already in use by [%v]", name, san)
+					}
+				}
 			}
 		}
 	}

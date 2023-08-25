@@ -142,8 +142,8 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	// verify boundary of multipart form data request
 	err := VerifyMultipartForm(w, r)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
 	}
 
 	// FIXME: INVESTIGATE FORM DATA LIMITATIONS
@@ -294,7 +294,7 @@ func VerifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if !match {
-		return http.ErrBodyNotAllowed
+		return fmt.Errorf("Content-Type header must contain multipart/form-data with boundary") 
 	}
 
 	return nil

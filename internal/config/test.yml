@@ -9,7 +9,7 @@ pki:
   csr_max_memory: 1024
   certificate_ttl: "60m"
   certificate_authority: 
-    - "scorpio.io"
-    - "*.scorpio.io"
-  allowed_sans:
-    - ".*\\.scorpio\\.io"
+    common_name: "scorpio.io"
+  allowed_names:
+    - "^$"
+    - ".*\\.example\\.com"

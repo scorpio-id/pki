@@ -20,8 +20,14 @@ func NewRouter(cfg config.Config) *mux.Router{
 	router.HandleFunc("/p12", signer.PKCSHandler).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/public", signer.PublicHandler).Methods(http.MethodGet, http.MethodOptions)
 
-	// apply OAuth middleware
-	router.Use(OAuthMiddleware)
+	// apply OAuth middleware if enabled
+	if cfg.OAuth.Enabled {
+		om := OAuthMiddleware {
+			TrustedIssuers: cfg.OAuth.TrustedIssuers,
+		}
+
+		router.Use(om.Middleware)
+	}
 
 	return router
 }

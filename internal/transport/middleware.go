@@ -5,10 +5,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/scorpio-id/oauth/pkg/oauth"
+	oauth "github.com/scorpio-id/oauth/pkg"
 )
 
-func OAuthMiddleware(next http.Handler) http.Handler {
+type OAuthMiddleware struct {
+	TrustedIssuers []string
+}
+
+func (om *OAuthMiddleware) Middleware(next http.Handler) http.Handler {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// get JWT from Authorization: Bearer header in request
 		// use Verify function from OAuth service (scorpio)
@@ -29,13 +34,13 @@ func OAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		claims, err := oauth.Verify(jwt, "http://localhost:8082/jwks", http.Client{})
+		claims, err := oauth.Verify(jwt, om.TrustedIssuers, http.Client{})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
-		// TODO - inspect claims, and add relevant metadata to request headers 
+		// TODO - inspect claims, and add relevant metadata to request headers
 		log.Println(claims)
 
 		// continue to originally requested handler

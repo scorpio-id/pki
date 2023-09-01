@@ -18,13 +18,18 @@ func OAuthMiddleware(next http.Handler) http.Handler {
 		// TODO - review!
 		authorization := r.Header.Get("Authorization")
 		split := strings.Split(authorization, "Bearer ")
+		if len(split) < 2 {
+			http.Error(w, "jwt must be provided in the Authorization: Bearer header", http.StatusUnauthorized)
+			return
+		}
+
 		jwt := split[1]
 		if jwt == "" {
 			http.Error(w, "jwt must be provided in the Authorization: Bearer header", http.StatusUnauthorized)
 			return
 		}
 
-		claims, err := oauth.Verify(jwt, "scorpio.io/jwks", http.Client{})
+		claims, err := oauth.Verify(jwt, "http://localhost:8082/jwks", http.Client{})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
@@ -33,5 +38,7 @@ func OAuthMiddleware(next http.Handler) http.Handler {
 		// TODO - inspect claims, and add relevant metadata to request headers 
 		log.Println(claims)
 
+		// continue to originally requested handler
+		next.ServeHTTP(w, r)
 	})
 }

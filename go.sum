@@ -11,8 +11,8 @@ github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB7
 github.com/jarcoal/httpmock v1.3.0 h1:2RJ8GP0IIaWwcC9Fp2BmVi8Kog3v2Hn7VXM3fTd+nuc=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/scorpio-id/oauth v0.1.1-0.20230901204951-da9fdd2e7f04 h1:P61kACGl5moTKKQwaLBaQ4bLfODLBurLjAP0GOJGpX0=
-github.com/scorpio-id/oauth v0.1.1-0.20230901204951-da9fdd2e7f04/go.mod h1:qgefIP/mMEkScz0Eum/iFbTARSPHau9SNg7luv9BSjA=
+github.com/scorpio-id/oauth v0.1.3 h1:LdTsg+AysaHHyhE714ll7FKheysdWWH3u5JVCFh6ud4=
+github.com/scorpio-id/oauth v0.1.3/go.mod h1:qgefIP/mMEkScz0Eum/iFbTARSPHau9SNg7luv9BSjA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=

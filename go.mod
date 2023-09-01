@@ -3,7 +3,7 @@ module github.com/scorpio-id/pki
 go 1.19
 
 require (
-	github.com/scorpio-id/oauth v0.1.1-0.20230901204951-da9fdd2e7f04
+	github.com/scorpio-id/oauth v0.1.3
 	software.sslmate.com/src/go-pkcs12 v0.2.1
 )
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	oauth "github.com/scorpio-id/oauth/pkg"
+	"github.com/scorpio-id/oauth/pkg/oauth2"
 )
 
 type OAuthMiddleware struct {
@@ -34,7 +34,7 @@ func (om *OAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		claims, err := oauth.Verify(jwt, om.TrustedIssuers, http.Client{})
+		claims, err := oauth2.Verify(jwt, om.TrustedIssuers, http.Client{})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return

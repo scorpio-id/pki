@@ -16,4 +16,4 @@ pki:
 oauth:
   enabled: False
   trusted_issuers:
-    - "http://localhost:8082"
+    - "http://localhost:8082/jwks"

@@ -1,0 +1,115 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Scorpio PKI Service",
+        "contact": {},
+        "license": {
+            "name": "MIT",
+            "url": "https://mit-license.org"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8081",
+    "basePath": "/",
+    "paths": {
+        "/certificate": {
+            "post": {
+                "description": "CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "csr"
+                ],
+                "summary": "Handles CSRs and Return x509",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authentication header",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "csr post form field is blank",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/p12": {
+            "post": {
+                "description": "CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "pkcs-12"
+                ],
+                "summary": "Handles PKCS #12 request and PKCS #12",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authentication header",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "pkcs post form field is blank",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/public": {
+            "get": {
+                "tags": [
+                    "public",
+                    "rsa"
+                ],
+                "summary": "Exposes the CAs Public Key",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

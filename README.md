@@ -37,10 +37,6 @@ go run ./cmd/main.go
 
 A client must be able to send over `multipart/form-data` data to the `\csr` endpoint with a header called `"csr"` set to a valid PEM-encoded CSR.
 
-An example of this is:
-    ""
-
-
 The CSR Request must abide by the CA's policy.
 
 Steps on how to generate these can be found below:
@@ -49,7 +45,7 @@ Steps on how to generate these can be found below:
 
 ### For a client to request a PKCS#12
 
-Similarly to a CSR, clients must be able to send over `multipart/form-data` data to the `\p12` endpoint with a header called `"sans"` with a list of  
+Similarly to a CSR, clients must be able to send over `multipart/form-data` data to the `\p12` endpoint with a header called `"sans"` which is set to a list of qualifying domain names alongside wildcard domains.
 
 
 ## Identities and Certificate Authorities

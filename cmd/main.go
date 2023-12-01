@@ -6,7 +6,7 @@ import(
 
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/transport"
-	_ "github.com/scorpio-id/pki/cmd/docs"
+	_ "github.com/scorpio-id/pki/docs"
 
 )
 

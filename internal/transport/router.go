@@ -7,7 +7,7 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/signatures"
 	"github.com/swaggo/http-swagger/v2"
-	_ "github.com/scorpio-id/pki/cmd/docs"
+	_ "github.com/scorpio-id/pki/docs"
 
 )
 
@@ -15,6 +15,7 @@ import (
 // NewRouter creates a new mux router with applied server
 func NewRouter(cfg config.Config) *mux.Router{
 
+	// FIXME: break into subroutes
 	router := mux.NewRouter()
 
 	signer := signatures.NewSigner(cfg)
@@ -30,7 +31,7 @@ func NewRouter(cfg config.Config) *mux.Router{
 	router.HandleFunc("/certificate", signer.CSRHandler).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/p12", signer.PKCSHandler).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/public", signer.PublicHandler).Methods(http.MethodGet, http.MethodOptions)
-
+	
 	// apply OAuth middleware if enabled
 	if cfg.OAuth.Enabled {
 		om := OAuthMiddleware {

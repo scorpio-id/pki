@@ -15,6 +15,8 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/data"
 	"github.com/scorpio-id/pki/pkg/certificate"
+	_ "github.com/scorpio-id/pki/docs"
+
 )
 
 // Signer generates an RSA public, private key pair and signs X.509 certificates
@@ -137,6 +139,22 @@ func (s *Signer) EnforceNamePolicy(csr []byte) error {
 	return err
 }
 
+
+// CSR Handler Swagger Documentation
+//
+// @Summary Handles CSRs and Return x509
+// @Description CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
+// @Tags csr
+// @Accept mpfd
+// @Produce octet-stream
+// @Param	Authorization header string	true "Authentication header"
+//
+// @Success	200	{file} 	Certificate.pem
+// @failure 400 {string} string "Bad Request"
+// @failure 400 {string} string "csr post form field is blank"
+//
+// @Router /certificate [post]
+//
 // CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	// verify boundary of multipart form data request
@@ -198,7 +216,22 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 }
-
+// PKCS #12 Handler Swagger Documentation
+//
+// @Summary Handles PKCS #12 request and PKCS #12
+// @Description CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
+// @Tags pkcs-12
+// @Accept mpfd
+// @Produce octet-stream
+// @Param	Authorization header string	true "Authentication header"
+//
+// @Success	200	{file} 	Certificate.pfx
+// @failure 400 {string} string "Bad Request"
+// @failure 400 {string} string "pkcs post form field is blank"
+// @failure 500 {string} string "Internal Server Error"
+//
+// @Router /p12 [post]
+//
 // PKCSHandler accepts SAN data and returns a PKCS12 file or JSON content given HTTP Accept header
 func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	// generate new RSA identity for PKCS12
@@ -266,6 +299,14 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Public Key Handler Swagger Documentation
+//
+// @Summary Exposes the CAs Public Key
+// @Tags public, rsa
+// @Success	200	{file} 	Public Key (PEM Encoded)
+//
+// @Router /public [get]
+// 
 // PublicHandler returns the public key of the certificate authority
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO - return JSON (JWKS?) representation

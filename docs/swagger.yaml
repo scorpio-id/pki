@@ -1,0 +1,78 @@
+basePath: /
+host: localhost:8081
+info:
+  contact: {}
+  license:
+    name: MIT
+    url: https://mit-license.org
+  title: Scorpio PKI Service
+  version: "1.0"
+paths:
+  /certificate:
+    post:
+      consumes:
+      - multipart/form-data
+      description: CSRHandler accepts a CSR in a multipart form data request and returns
+        a PEM file or JSON content given HTTP Accept header
+      parameters:
+      - description: Authentication header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: csr post form field is blank
+          schema:
+            type: string
+      summary: Handles CSRs and Return x509
+      tags:
+      - csr
+  /p12:
+    post:
+      consumes:
+      - multipart/form-data
+      description: CSRHandler accepts a CSR in a multipart form data request and returns
+        a PEM file or JSON content given HTTP Accept header
+      parameters:
+      - description: Authentication header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: pkcs post form field is blank
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: 'Handles PKCS #12 request and PKCS #12'
+      tags:
+      - pkcs-12
+  /public:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: Exposes the CAs Public Key
+      tags:
+      - public
+      - rsa
+swagger: "2.0"

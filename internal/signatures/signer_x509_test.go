@@ -183,8 +183,6 @@ func TestSignX509CertificateDuplicateError(t *testing.T) {
 }
 
 func TestSignX509CertificateWildcardDuplicateError(t *testing.T) {
-	// TODO - attempt to sign cert with fail.example.com while *.example.com is already registered
-	// create another CSR with desired san fail.example.com
 
 	cfg := config.NewConfig("../config/test.yml")
 
@@ -251,8 +249,6 @@ func TestSignX509CertificateWildcardDuplicateError(t *testing.T) {
 }
 
 func TestSignX509CertificateWildcardExistsError(t *testing.T) {
-	// TODO - attempt to sign cert with fail.example.com while *.example.com is already registered
-	// create another CSR with desired san fail.example.com
 
 	cfg := config.NewConfig("../config/test.yml")
 
@@ -319,6 +315,7 @@ func TestSignX509CertificateWildcardExistsError(t *testing.T) {
 }
 
 func TestSignX509CertificateNameAllowedPolicyError(t *testing.T) {
+	
 	cfg := config.NewConfig("../config/test.yml")
 
 	s := NewSigner(cfg)

@@ -6,6 +6,9 @@ import (
 
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/signatures"
+	"github.com/swaggo/http-swagger/v2"
+	_ "github.com/scorpio-id/pki/cmd/docs"
+
 )
 
 
@@ -15,6 +18,14 @@ func NewRouter(cfg config.Config) *mux.Router{
 	router := mux.NewRouter()
 
 	signer := signatures.NewSigner(cfg)
+
+	// adding swagger endpoint
+	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:"+cfg.Server.Port+"/swagger/doc.json"), 
+		httpSwagger.DeepLinking(true),
+		httpSwagger.DocExpansion("none"),
+		httpSwagger.DomID("swagger-ui"),
+	)).Methods(http.MethodGet)
 
 	router.HandleFunc("/certificate", signer.CSRHandler).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/p12", signer.PKCSHandler).Methods(http.MethodPost, http.MethodOptions)

@@ -15,6 +15,8 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/data"
 	"github.com/scorpio-id/pki/pkg/certificate"
+	_ "github.com/scorpio-id/pki/cmd/docs"
+
 )
 
 // Signer generates an RSA public, private key pair and signs X.509 certificates
@@ -137,6 +139,22 @@ func (s *Signer) EnforceNamePolicy(csr []byte) error {
 	return err
 }
 
+
+// CSR Swagger Documentation
+//
+// @Summary Handles CSRs and Return x509
+// @Description CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
+// @Tags csr
+// @Accept mpfd
+// @Produce octet-stream
+// @Param	Authorization header string	true "Authentication header"
+//
+// @Success	200	{file} 	Certificate.pem
+// @failure 400 {string} string "Bad Request"
+// @failure 400 {string} string "csr post form field is blank"
+//
+// @Router /certificate [post]
+//
 // CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 	// verify boundary of multipart form data request

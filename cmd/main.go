@@ -8,6 +8,12 @@ import(
 	"github.com/scorpio-id/pki/internal/transport"
 )
 
+// @title Scorpio PKI Service
+// @version 1.0
+// @license.name MIT
+// @license.url https://mit-license.org
+// @host localhost
+// @BasePath /
 func main() {
 	// parse local config (could be added as cmd line arg)
 	cfg := config.NewConfig("internal/config/local.yml")

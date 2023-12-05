@@ -1,5 +1,5 @@
 # PKI
-Scorpio ID's PKI Service is a configurable **X509 Certificate Authority** management tool implemented in Go with native support to handle CSRs and PKCS#12 using OAuth2. 
+Scorpio ID's PKI Service is a configurable **X509 Certificate Authority** management tool implemented in Go with native support to handle CSRs and PKCS#12 with additional support for OAuth2. 
 
 Once properly configured, running this service exposes a series of endpoints in which a client or service requests to receive a valid X509 Certificate issued and signed by this CA. 
 
@@ -10,10 +10,11 @@ Once properly configured, running this service exposes a series of endpoints in 
  - [Getting started](#getting-started)
  - [Setting Up Configuration Files](#setting-up-configuration-files)
  - [PKI API Documentation](#pki-api-documentation) 
+ - [Examples](#examples)
  - [About this Project](#about-the-project)
  - [References](#references)
 
-## What is a PKI 
+## What is PKI 
 A public key infrastructure (PKI) is a system facilitating the creation and distribution of digital certificates. This service helps reinstate secure communications between services on the web. More information can be found below about this technology in 
 [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280).
 
@@ -31,13 +32,22 @@ go install github.com/scorpio-id/pki@latest
 go run ./cmd/main.go
 ```
 
-4. Verify that it's properly running by checking its swagger page:`hostDomain:port/swagger/index.html`
+4. Verify that it's properly running by checking its swagger page: `hostDomain:port/swagger/index.html`
 
 ### For a client to request a CSR
 
-A client must be able to send over `multipart/form-data` data to the `\csr` endpoint with a header called `"csr"` set to a valid PEM-encoded CSR.
+A client must be able to send over `multipart/form-data` data to the `\certificate` endpoint with its body having a key-value pair where `"csr"` is set to a valid PEM-encoded CSR.
 
-The CSR Request must abide by the CA's policy.
+An example of this POST request in cURL can be seen below if OAuth is enabled:
+
+```sh
+curl \
+--location 'localhost:8081/certificate' \
+--header 'Authorization: Bearer <valid-token-here>' \
+--form 'csr="<valid-pem-encoded-csr-here>"'
+``` 
+
+A Go implementation of this request can be found [below](#example-certificate-signing-request-in-go).
 
 Steps on how to generate these can be found below:
 - [Windows](https://www.ssl.com/how-to/generate-a-certificate-signing-request-csr-in-iis-10/)
@@ -47,6 +57,11 @@ Steps on how to generate these can be found below:
 
 Similarly to a CSR, clients must be able to send over `multipart/form-data` data to the `\p12` endpoint with a header called `"sans"` which is set to a list of qualifying domain names alongside wildcard domains.
 
+```sh
+curl --location 'localhost:8081/p12' \
+--header 'Authorization: Bearer <valid-token-here>' \
+--form 'sans="example.com, *.example.com"'
+```
 
 ## Identities and Certificate Authorities
 
@@ -102,6 +117,64 @@ Each `.yaml` file **requires** the following headers:
 ## PKI API Documentation
 
 Running this application also supplies a Swagger page under the `\swagger` endpoint where verbose documentation can be found explaining each endpoint and what REST operations are available.
+
+## Examples
+
+### Sending a Certificate Signing Request in Go
+
+
+```go
+import (
+  "fmt"
+  "bytes"
+  "mime/multipart"
+  "net/http"
+  "io/ioutil"
+)
+
+func main() {
+
+  url := "localhost:8081/certificate"
+  method := "POST"
+  csr := "-----BEGIN NEW CERTIFICATE REQUEST-----\n<GOES HERE>\N----END NEW CERTIFICATE REQUEST-----"
+  token := "<valid OAuth2 Token issued from trusted_issuers in config>"
+
+  payload := &bytes.Buffer{}
+  writer := multipart.NewWriter(payload)
+  _ = writer.WriteField("csr", csr)
+  err := writer.Close()
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+
+  client := &http.Client {
+  }
+  req, err := http.NewRequest(method, url, payload)
+
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+  req.Header.Add("Authorization", "Bearer "+ token)
+
+  req.Header.Set("Content-Type", writer.FormDataContentType())
+  res, err := client.Do(req)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+  defer res.Body.Close()
+
+  body, err := ioutil.ReadAll(res.Body)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+  fmt.Println(string(body))
+}
+```
 
 ## About the project
 This project was made to make integrating a Certificate Authority in Go much much easier!

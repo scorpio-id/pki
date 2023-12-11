@@ -1,7 +1,7 @@
 # PKI
-Scorpio ID's PKI Service is a configurable **X509 Certificate Authority** management tool implemented in Go with native support to handle CSRs and PKCS#12 with additional support for OAuth2. 
+Scorpio ID's PKI Service is a configurable **X.509 Certificate Authority** management tool implemented in Go with native support to handle CSRs and PKCS#12 with additional support for OAuth2. 
 
-Once properly configured, running this service exposes a series of endpoints in which a client or service requests to receive a valid X509 Certificate issued and signed by this CA. 
+Once properly configured, running this service exposes a series of endpoints in which a client or service requests to receive a valid X.509 Certificate issued and signed by this CA. 
 
 
 ## Contents

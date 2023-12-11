@@ -58,7 +58,8 @@ Steps on how to generate these can be found below:
 Similarly to a CSR, clients must be able to send over `multipart/form-data` data to the `\p12` endpoint with a header called `"sans"` which is set to a list of qualifying domain names alongside wildcard domains.
 
 ```sh
-curl --location 'localhost:8081/p12' \
+curl \
+--location 'localhost:8081/p12' \
 --header 'Authorization: Bearer <valid-token-here>' \
 --form 'sans="example.com, *.example.com"'
 ```

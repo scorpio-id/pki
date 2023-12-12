@@ -11,6 +11,8 @@ Once properly configured, running this service exposes a series of endpoints in 
    - [How a client submits CSR](#for-a-client-to-request-a-csr)
    - [How a client requests a PKCS #12](#for-a-client-to-request-a-pkc)
  - [API Endpoint Documentation](#api-endpoint-documentation) 
+ - [Identities and Certificate Authorities](#identities-and-certificate-authorities)
+
  - [Setting Up Configuration Files](#setting-up-configuration-files)
 
  - [Examples](#examples)

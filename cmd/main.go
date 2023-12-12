@@ -10,12 +10,15 @@ import(
 
 )
 
-// @title Scorpio PKI Service
-// @version 1.0
-// @license.name MIT
-// @license.url https://mit-license.org
-// @host localhost:8081
-// @BasePath /
+//	@title			Scorpio PKI Service
+//	@description	A configurable X509 Certificate Authority management tool implemented in Go.
+//	@version		1.0
+//
+//	@license.name	MIT
+//	@license.url	https://mit-license.org
+//
+//	@host			localhost:8081
+//	@BasePath		/
 func main() {
 	// parse local config (could be added as cmd line arg)
 	cfg := config.NewConfig("internal/config/local.yml")

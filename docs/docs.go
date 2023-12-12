@@ -21,7 +21,7 @@ const docTemplate = `{
     "paths": {
         "/certificate": {
             "post": {
-                "description": "CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header",
+                "description": "The CSR handler is responsible for processing Certificate Signing Requests (CSRs). It validates incoming CSR data, ensuring compliance with formatting and policy standardsnn are met. Once validated, the handler creates a new digital certificate with the entity's public key and associated identity information. The handler produces and returns a PEM encoded certificate",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -31,7 +31,7 @@ const docTemplate = `{
                 "tags": [
                     "csr"
                 ],
-                "summary": "Handles CSRs and Return x509",
+                "summary": "Processes Certificate Signing Requests and returns X.509",
                 "parameters": [
                     {
                         "type": "string",
@@ -128,7 +128,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Scorpio PKI Service",
-	Description:      "",
+	Description:      "A configurable X509 Certificate Authority management tool implemented in Go.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

@@ -1,5 +1,5 @@
 # PKI
-Scorpio ID's PKI Service is a configurable **X.509 Certificate Authority** management tool implemented in Go with native support to handle CSRs and PKCS#12 with additional support for OAuth2. 
+Scorpio ID's PKI Service is a configurable **X.509 Certificate Authority** management tool implemented in Go with native support to handle CSRs and PKCS #12 with additional support for OAuth2. 
 
 Once properly configured, running this service exposes a series of endpoints in which a client or service requests to receive a valid X.509 Certificate issued and signed by this CA. 
 
@@ -8,11 +8,15 @@ Once properly configured, running this service exposes a series of endpoints in 
  - [What is a PKI](#what-is-a-pki)
  - [Identities and Certificate Authorities](#identities-and-certificate-authorities)
  - [Getting started](#getting-started)
+   - [How a client submits CSR](#for-a-client-to-request-a-csr)
+   - [How a client requests a PKCS #12](#for-a-client-to-request-a-pkc)
+ - [API Endpoint Documentation](#api-endpoint-documentation) 
  - [Setting Up Configuration Files](#setting-up-configuration-files)
- - [PKI API Documentation](#pki-api-documentation) 
+
  - [Examples](#examples)
  - [About this Project](#about-the-project)
- - [References](#references)
+ - [References](#references-and-resources)
+    - [Useful Links](#useful-links) 
 
 ## What is PKI 
 A public key infrastructure (PKI) is a system facilitating the creation and distribution of digital certificates. This service helps reinstate secure communications between services on the web. More information can be found below about this technology in 
@@ -53,7 +57,7 @@ Steps on how to generate these can be found below:
 - [Windows](https://www.ssl.com/how-to/generate-a-certificate-signing-request-csr-in-iis-10/)
 - [Linux](https://www.geeksforgeeks.org/how-to-generate-a-csr-certificate-signing-request-in-linux/)
 
-### For a client to request a PKCS#12
+### For a client to request a PKCS #12
 
 Similarly to a CSR, clients must be able to send over `multipart/form-data` data to the `\p12` endpoint with a header called `"sans"` which is set to a list of qualifying domain names alongside wildcard domains.
 
@@ -63,6 +67,12 @@ curl \
 --header 'Authorization: Bearer <valid-token-here>' \
 --form 'sans="example.com, *.example.com"'
 ```
+
+
+## API Endpoint Documentation
+
+Running this application initiates a swagger page under the `\swagger` endpoint where verbose documentation can be found explaining each endpoint and what REST operations are available with them. Additionally, example requests are further provided within the documentation.
+
 
 ## Identities and Certificate Authorities
 
@@ -115,9 +125,6 @@ Each `.yaml` file **requires** the following headers:
 | enabled  | Whether OAuth is required to be used. | Boolean | True|
 | trusted_issuers  | Domains which the host can do OAuth with.  | List | -"http://localhost:8082/jwks" <br> "https://scorpio.io/jwks" |
 
-## PKI API Documentation
-
-Running this application also supplies a Swagger page under the `\swagger` endpoint where verbose documentation can be found explaining each endpoint and what REST operations are available.
 
 ## Examples
 
@@ -180,6 +187,9 @@ func main() {
 ## About the project
 This project was made to make integrating a Certificate Authority in Go much much easier!
 
-## References
-[RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) - *Internet X.509 Public Key Infrastructure Certificate
-             and Certificate Revocation List (CRL) Profile*
+## References and Resources
+[RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) - *Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile*
+
+### Useful Links
+
+[X.509 Encodings and Conversions](https://www.ssl.com/guide/pem-der-crt-and-cer-x-509-encodings-and-conversions/) - Information on encoding PEM, DER, CRT, and CER 

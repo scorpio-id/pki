@@ -8,10 +8,10 @@ Once configured, a running instance exposes a series of endpoints in which a cli
  - [What is PKI](#what-is-pki)
  - [Getting Started](#getting-started)
    - [Submit a CSR](#submit-a-csr)
-   - [Requests PKCS #12](#request-a-pkc)
+   - [Request PKCS #12](#request-a-pkcs-12)
  - [API Documentation](#api-documentation) 
  - [Identity and Certificate Authorities](#identity-and-certificate-authorities)
- - [Setting Up Configuration Files](#setting-up-configuration-files)
+ - [Configuration Files](#configuration-files)
  - [Examples](#examples)
  - [About This Project](#about-this-project)
  - [References](#references-and-resources)
@@ -36,7 +36,7 @@ go run ./cmd/main.go
 
 4. Verify that the instance is running by checking the corresponding swagger page: `hostDomain:port/swagger/index.html`
 
-### For a Client to Request a CSR
+### Submit a CSR
 A client must be able to send a `multipart/form-data` HTTPS request to the `/certificate` endpoint with a key-value pair `"csr"` containing a valid PEM-encoded CSR.
 
 An example of this POST request in cURL can be seen below assuming OAuth is enabled:
@@ -54,7 +54,7 @@ Steps on how to generate these can be found below:
 - [Windows](https://www.ssl.com/how-to/generate-a-certificate-signing-request-csr-in-iis-10/)
 - [Linux](https://www.geeksforgeeks.org/how-to-generate-a-csr-certificate-signing-request-in-linux/)
 
-### For a client to request a PKCS #12
+### Request a PKCS #12
 Similarly to a CSR, clients must be able to send `application/x-www-form-urlencoded` data to the `/p12` endpoint with `"san"` form parameters set to qualifying domain names.
 
 ```sh
@@ -64,7 +64,7 @@ curl \
 -d "san=example1.com&san=example2.com"
 ```
 
-## API Endpoint Documentation
+## API Documentation
 Running this application initiates a swagger page on the `/swagger` endpoint where REST API documentation can be found describing each endpoint and supported operations. Additional example requests are provided within the documentation.
 
 ## Identity and Certificate Authorities
@@ -172,7 +172,7 @@ func main() {
 }
 ```
 
-## About the Project
+## About This Project
 This project was made to make integrating a Certificate Authority in Go much, much easier!
 
 ## References and Resources

@@ -228,6 +228,12 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 //
 // PKCSHandler accepts SAN data and returns a PKCS12 file or JSON content given HTTP Accept header
 func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
+	// verify Content-Type
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		return
+	}
+	
 	// generate new RSA identity for PKCS12
 	private, err := rsa.GenerateKey(rand.Reader, s.RSABits)
 	if err != nil {

@@ -140,21 +140,18 @@ func (s *Signer) EnforceNamePolicy(csr []byte) error {
 }
 
 
-// CSR Handler Swagger Documentation
+//  CSR Handler Swagger Documentation
 //
 //	@Summary		Processes Certificate Signing Requests and returns X.509
-//
 //	@Description	The CSR handler is responsible for processing Certificate Signing Requests (CSRs). It validates incoming CSR data, ensuring compliance with formatting and policy standardsnn are met. Once validated, the handler creates a new digital certificate with the entity's public key and associated identity information. The handler produces and returns a PEM encoded certificate 
-//
-//	@Tags			csr
+//	@Tags			CSR 
 //	@Accept			mpfd
 //	@Produce		octet-stream
-//	@Param			Authorization	header		string	true	"Authentication header"
+//	@Success		200				{body}		file		"Certificate.pem"
+//	@Failure		400				{string}	http.error	"Bad Request"
+//	@Failure		415				{string}	http.error	"Unsuported Media - Must be Multipart Form Data"
 //
-//	@Success		200				{file}		Certificate.pem
-//	@failure		400				{string}	http.error	"csr post form field is blank"
-//
-//	@Router			/certificate [post]
+//	@Router	/certificate [post]
 //
 // CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
@@ -219,18 +216,14 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 }
 // PKCS #12 Handler Swagger Documentation
 //
-//	@Summary		Handles PKCS #12 request and PKCS #12
+//	@Summary		Handles PKCS #12 request
 //	@Description	CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
-//	@Tags			pkcs-12
-//	@Accept			mpfd
+//	@Tags			PKCS-12
+//	@Accept			x-www-form-urlencoded
 //	@Produce		octet-stream
-//	@Param			Authorization	header		string	true	"Authentication header"
-//
 //	@Success		200				{file}		Certificate.pfx
-//	@failure		400				{string}	string	"Bad Request"
-//	@failure		400				{string}	string	"pkcs post form field is blank"
-//	@failure		500				{string}	string	"Internal Server Error"
-//
+//	@Failure		400				{string}	string	"Bad Request"
+//	@Failure		500				{string}	string	"Internal Server Error"
 //	@Router			/p12 [post]
 //
 // PKCSHandler accepts SAN data and returns a PKCS12 file or JSON content given HTTP Accept header
@@ -303,9 +296,8 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 // Public Key Handler Swagger Documentation
 //
 //	@Summary	Exposes the CAs Public Key
-//	@Tags		public, rsa
+//	@Tags		Public Keys
 //	@Success	200	{file}	Public	Key	(PEM Encoded)
-//
 //	@Router		/public [get]
 // 
 // PublicHandler returns the public key of the certificate authority

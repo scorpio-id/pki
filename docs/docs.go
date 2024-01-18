@@ -9,7 +9,12 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
         "license": {
             "name": "MIT",
             "url": "https://mit-license.org"
@@ -29,27 +34,24 @@ const docTemplate = `{
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "csr"
+                    "CSR"
                 ],
                 "summary": "Processes Certificate Signing Requests and returns X.509",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Authentication header",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Certificate.pem",
                         "schema": {
-                            "type": "file"
+                            "type": "body"
                         }
                     },
                     "400": {
-                        "description": "csr post form field is blank",
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsuported Media - Must be Multipart Form Data",
                         "schema": {
                             "type": "string"
                         }
@@ -61,24 +63,15 @@ const docTemplate = `{
             "post": {
                 "description": "CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "pkcs-12"
+                    "PKCS-12"
                 ],
-                "summary": "Handles PKCS #12 request and PKCS #12",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Authentication header",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
+                "summary": "Handles PKCS #12 request",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -87,7 +80,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "pkcs post form field is blank",
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }
@@ -104,8 +97,7 @@ const docTemplate = `{
         "/public": {
             "get": {
                 "tags": [
-                    "public",
-                    "rsa"
+                    "Public Keys"
                 ],
                 "summary": "Exposes the CAs Public Key",
                 "responses": {
@@ -124,7 +116,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8081",
+	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Scorpio PKI Service",

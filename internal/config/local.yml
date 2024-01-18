@@ -2,6 +2,7 @@
 server:
   host: "http://127.0.0.1"
   port: 8081
+  
 # pki configuration
 pki:
   rsa_bits: 2048
@@ -15,6 +16,6 @@ pki:
     - ".*\\.scorpio\\.io"
     - ".*\\.example\\.com"
 oauth:
-  enabled: True
+  enabled: False
   trusted_issuers:
     - "http://localhost:8082/jwks"

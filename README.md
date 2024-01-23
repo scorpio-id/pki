@@ -1,24 +1,27 @@
 # PKI
-Scorpio ID's PKI Service is a configurable **X509 Certificate Authority** management tool implemented in Go with native support to handle CSRs and PKCS#12 using OAuth2. 
+Scorpio ID's PKI service is a configurable **X.509 Certificate Authority** implemented in Go with native support to handle CSRs and PKCS #12 secured with OAuth2. 
 
-Once properly configured, running this service exposes a series of endpoints in which a client or service requests to receive a valid X509 Certificate issued and signed by this CA. 
+Once configured, a running instance exposes a series of endpoints in which a client or service may request a valid X.509 certificate issued by this CA. 
 
 
 ## Contents
- - [What is a PKI](#what-is-a-pki)
- - [Identities and Certificate Authorities](#identities-and-certificate-authorities)
- - [Getting started](#getting-started)
- - [Setting Up Configuration Files](#setting-up-configuration-files)
- - [PKI API Documentation](#pki-api-documentation) 
- - [About this Project](#about-the-project)
- - [References](#references)
+ - [What is PKI](#what-is-pki)
+ - [Getting Started](#getting-started)
+   - [Submit a CSR](#submit-a-csr)
+   - [Request PKCS #12](#request-a-pkcs-12)
+ - [API Documentation](#api-documentation) 
+ - [Identity and Certificate Authorities](#identity-and-certificate-authorities)
+ - [Configuration Files](#configuration-files)
+ - [Examples](#examples)
+ - [About This Project](#about-this-project)
+ - [References](#references-and-resources)
+    - [Useful Links](#useful-links) 
 
-## What is a PKI 
-A public key infrastructure (PKI) is a system facilitating the creation and distribution of digital certificates. This service helps reinstate secure communications between services on the web. More information can be found below about this technology in 
+## What is PKI 
+Public Key Infrastructure (PKI) facilitates the creation and distribution of digital certificates. This service serves as the foundation for modern HTTPS, and enables communication between services on the web. More information can be found in the official RFC: 
 [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280).
 
 ## Getting Started
-
 1. Begin by installing the repository dependencies using the following command:
 ```sh
 go install github.com/scorpio-id/pki@latest
@@ -31,58 +34,68 @@ go install github.com/scorpio-id/pki@latest
 go run ./cmd/main.go
 ```
 
-4. Verify that it's properly running by checking its swagger page:`hostDomain:port/swagger/index.html`
+4. Verify that the instance is running by checking the corresponding swagger page: `hostDomain:port/swagger/index.html`
 
-### For a client to request a CSR
+### Submit a CSR
+A client must be able to send a `multipart/form-data` HTTPS request to the `/certificate` endpoint with a key-value pair `"csr"` containing a valid PEM-encoded CSR.
 
-A client must be able to send over `multipart/form-data` data to the `\csr` endpoint with a header called `"csr"` set to a valid PEM-encoded CSR.
+An example of this POST request in cURL can be seen below assuming OAuth is enabled:
 
-The CSR Request must abide by the CA's policy.
+```sh
+curl \
+--location 'localhost:8081/certificate' \
+--header 'Authorization: Bearer <valid-jwt-here>' \
+--form 'csr="<valid-pem-encoded-csr-here>"'
+``` 
+
+A Go implementation of this request can be found [below](#example-certificate-signing-request-in-go).
 
 Steps on how to generate these can be found below:
 - [Windows](https://www.ssl.com/how-to/generate-a-certificate-signing-request-csr-in-iis-10/)
 - [Linux](https://www.geeksforgeeks.org/how-to-generate-a-csr-certificate-signing-request-in-linux/)
 
-### For a client to request a PKCS#12
+### Request a PKCS #12
+Similarly to a CSR, clients must be able to send `application/x-www-form-urlencoded` data to the `/p12` endpoint with `"san"` form parameters set to qualifying domain names.
 
-Similarly to a CSR, clients must be able to send over `multipart/form-data` data to the `\p12` endpoint with a header called `"sans"` which is set to a list of qualifying domain names alongside wildcard domains.
+```sh
+curl \
+--location 'localhost:8081/p12' \
+--header 'Authorization: Bearer <valid-jwt-here>' \
+-d "san=example1.com&san=example2.com"
+```
 
+## API Documentation
+Running this application initiates a swagger page on the `/swagger` endpoint where REST API documentation can be found describing each endpoint and supported operations. Additional example requests are provided within the documentation.
 
-## Identities and Certificate Authorities
-
+## Identity and Certificate Authorities
 Both CAs and clients are entities that require certain information to be provided between both parties for proper servicing.
 
-
 ### Scorpio ID's CA Identity
-RSA Key Pairs are automatically generated at the time of running this service and its public key is accessible at the `\public` endpoint. This is the primary identifier used to verify that a certificate was signed by this organization.
+A RSA key pair is generated at runtime and the corresponding PEM-encoded public key is accessible at the `/public` endpoint. This is the primary identifier used to verify that a certificate was signed by this CA instance.
 
-This CA's information will be integrated within all certificates signed and generated by this service. Further information can be expanded upon within the [configuration file](#setting-up-configuration-files).
+This CA's information is integrated within all certificates signed and generated by the service instance. Further information can be expanded upon within the [configuration file](#setting-up-configuration-files).
 
 The *Common Name* header is **required** to be defined here. 
 
-Other optional headers can be (but are not limited to): 
+Other optional headers: 
 - Organization
 - Country
 - Locality
 - Province
 - Intermediate
 
-
-## Setting Up Configuration Files
-
+## Configuration Files
 The configuration files for this project can be found in `./internal/config`. 
 
 Each `.yaml` file **requires** the following headers:
 
 ### server
-
 | Key  | Description | Type | Example  |
 |-------------|-------------|----------------|-------|
 | host  | The host/domain of the application.| String | "http://127.0.0.1" |
-| port  | Which port this application is allowed to open in.| Integer | 8081 |
+| port  | Which port this application binds to.| Integer | 8081 |
 
 ### pki
-
 | Key  | Description | Type | Example  |
 |-------------|-------------|----------------|-------|
 | rsa_bits  | Number of bits within key.| Integer | 2048 |
@@ -99,13 +112,71 @@ Each `.yaml` file **requires** the following headers:
 | enabled  | Whether OAuth is required to be used. | Boolean | True|
 | trusted_issuers  | Domains which the host can do OAuth with.  | List | -"http://localhost:8082/jwks" <br> "https://scorpio.io/jwks" |
 
-## PKI API Documentation
 
-Running this application also supplies a Swagger page under the `\swagger` endpoint where verbose documentation can be found explaining each endpoint and what REST operations are available.
+## Examples
 
-## About the project
-This project was made to make integrating a Certificate Authority in Go much much easier!
+### Sending a Certificate Signing Request in Go
 
-## References
-[RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) - *Internet X.509 Public Key Infrastructure Certificate
-             and Certificate Revocation List (CRL) Profile*
+```go
+import (
+  "fmt"
+  "bytes"
+  "mime/multipart"
+  "net/http"
+  "io/ioutil"
+)
+
+func main() {
+
+  url := "localhost:8081/certificate"
+  method := "POST"
+  csr := "-----BEGIN NEW CERTIFICATE REQUEST-----\n<GOES HERE>\N----END NEW CERTIFICATE REQUEST-----"
+  token := "<valid OAuth2 Token issued from trusted_issuers in config>"
+
+  payload := &bytes.Buffer{}
+  writer := multipart.NewWriter(payload)
+
+  _ = writer.WriteField("csr", csr)
+  err := writer.Close()
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+
+  client := &http.Client {}
+  req, err := http.NewRequest(method, url, payload)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  req.Header.Add("Authorization", "Bearer "+ token)
+  req.Header.Set("Content-Type", writer.FormDataContentType())
+
+  res, err := client.Do(req)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  defer res.Body.Close()
+
+  body, err := ioutil.ReadAll(res.Body)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+  fmt.Println(string(body))
+}
+```
+
+## About This Project
+This project was made to make integrating a Certificate Authority in Go much, much easier!
+
+## References and Resources
+[RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) - *Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile*
+
+### Useful Links
+[X.509 Encodings and Conversions](https://www.ssl.com/guide/pem-der-crt-and-cer-x-509-encodings-and-conversions/) - Information on encoding PEM, DER, CRT, and CER 

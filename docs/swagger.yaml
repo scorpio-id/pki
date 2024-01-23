@@ -1,10 +1,15 @@
 basePath: /
-host: localhost:8081
 info:
-  contact: {}
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: A configurable X509 Certificate Authority management tool implemented
+    in Go.
   license:
     name: MIT
     url: https://mit-license.org
+  termsOfService: http://swagger.io/terms/
   title: Scorpio PKI Service
   version: "1.0"
 paths:
@@ -12,40 +17,35 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: CSRHandler accepts a CSR in a multipart form data request and returns
-        a PEM file or JSON content given HTTP Accept header
-      parameters:
-      - description: Authentication header
-        in: header
-        name: Authorization
-        required: true
-        type: string
+      description: The CSR handler is responsible for processing Certificate Signing
+        Requests (CSRs). It validates incoming CSR data, ensuring compliance with
+        formatting and policy standardsnn are met. Once validated, the handler creates
+        a new digital certificate with the entity's public key and associated identity
+        information. The handler produces and returns a PEM encoded certificate
       produces:
       - application/octet-stream
       responses:
         "200":
-          description: OK
+          description: Certificate.pem
           schema:
-            type: file
+            type: body
         "400":
-          description: csr post form field is blank
+          description: Bad Request
           schema:
             type: string
-      summary: Handles CSRs and Return x509
+        "415":
+          description: Unsuported Media - Must be Multipart Form Data
+          schema:
+            type: string
+      summary: Processes Certificate Signing Requests and returns X.509
       tags:
-      - csr
+      - CSR
   /p12:
     post:
       consumes:
-      - multipart/form-data
+      - application/x-www-form-urlencoded
       description: CSRHandler accepts a CSR in a multipart form data request and returns
         a PEM file or JSON content given HTTP Accept header
-      parameters:
-      - description: Authentication header
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/octet-stream
       responses:
@@ -54,16 +54,16 @@ paths:
           schema:
             type: file
         "400":
-          description: pkcs post form field is blank
+          description: Bad Request
           schema:
             type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
-      summary: 'Handles PKCS #12 request and PKCS #12'
+      summary: 'Handles PKCS #12 request'
       tags:
-      - pkcs-12
+      - PKCS-12
   /public:
     get:
       responses:
@@ -73,6 +73,5 @@ paths:
             type: file
       summary: Exposes the CAs Public Key
       tags:
-      - public
-      - rsa
+      - Public Keys
 swagger: "2.0"

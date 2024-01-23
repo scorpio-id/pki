@@ -1,20 +1,25 @@
 {
     "swagger": "2.0",
     "info": {
+        "description": "A configurable X509 Certificate Authority management tool implemented in Go.",
         "title": "Scorpio PKI Service",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
         "license": {
             "name": "MIT",
             "url": "https://mit-license.org"
         },
         "version": "1.0"
     },
-    "host": "localhost:8081",
     "basePath": "/",
     "paths": {
         "/certificate": {
             "post": {
-                "description": "CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header",
+                "description": "The CSR handler is responsible for processing Certificate Signing Requests (CSRs). It validates incoming CSR data, ensuring compliance with formatting and policy standardsnn are met. Once validated, the handler creates a new digital certificate with the entity's public key and associated identity information. The handler produces and returns a PEM encoded certificate",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -22,27 +27,24 @@
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "csr"
+                    "CSR"
                 ],
-                "summary": "Handles CSRs and Return x509",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Authentication header",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
+                "summary": "Processes Certificate Signing Requests and returns X.509",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Certificate.pem",
                         "schema": {
-                            "type": "file"
+                            "type": "body"
                         }
                     },
                     "400": {
-                        "description": "csr post form field is blank",
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsuported Media - Must be Multipart Form Data",
                         "schema": {
                             "type": "string"
                         }
@@ -54,24 +56,15 @@
             "post": {
                 "description": "CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "pkcs-12"
+                    "PKCS-12"
                 ],
-                "summary": "Handles PKCS #12 request and PKCS #12",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Authentication header",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
+                "summary": "Handles PKCS #12 request",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -80,7 +73,7 @@
                         }
                     },
                     "400": {
-                        "description": "pkcs post form field is blank",
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }
@@ -97,8 +90,7 @@
         "/public": {
             "get": {
                 "tags": [
-                    "public",
-                    "rsa"
+                    "Public Keys"
                 ],
                 "summary": "Exposes the CAs Public Key",
                 "responses": {

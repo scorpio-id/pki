@@ -11,27 +11,27 @@ import (
 	"github.com/scorpio-id/pki/pkg/certificate"
 )
 
-type x509client struct {
+type X509Client struct {
 	certificateAuthorityURL string
 	private                 *rsa.PrivateKey
 }
 
-func NewX509Client(certificateAuthorityURL string) *x509client {
+func NewX509Client(certificateAuthorityURL string) *X509Client {
 	// create 2048 RSA key pair
 	keys, _ := rsa.GenerateKey(rand.Reader, 2048)
 
-	return &x509client{
+	return &X509Client{
 		certificateAuthorityURL: certificateAuthorityURL,
 		private: keys,
 	}
 }
 
-func (client *x509client) Authenticate() error {
+func (client *X509Client) Authenticate() error {
 	// TODO - add OAuth here
 	return nil
 }
 
-func (xclient *x509client) GetCertificate(sans []string) (string, error) {
+func (xclient *X509Client) GetCertificate(sans []string) (string, error) {
 	// generate CSR
 	csr, err := certificate.GenerateCSR(sans, 2048)
 	if err != nil {

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"encoding/json"
+	"encoding/pem"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -59,10 +61,18 @@ func (xclient *X509Client) GetCertificate(sans []string, jwt string) (string, er
 		return "", err
 	}
 
+	block := pem.Block{
+		Type:  "NEW CERTIFICATE REQUEST",
+		Bytes: csr,
+	}
+
 	payload := &bytes.Buffer{}
     writer := multipart.NewWriter(payload)
 
-    _ = writer.WriteField("csr", string(csr))
+    _ = writer.WriteField("csr", string(pem.EncodeToMemory(&block)))
+
+	// writer must be closed to correctly calculate boundary in multipart form request header
+	writer.Close()
 
     client := &http.Client{}
     req, err := http.NewRequest("POST", xclient.certificateAuthorityURL, payload)
@@ -77,6 +87,8 @@ func (xclient *X509Client) GetCertificate(sans []string, jwt string) (string, er
     if err != nil {
     	return "", err
     }
+
+	fmt.Printf(res.Status)
 
     defer res.Body.Close()
 

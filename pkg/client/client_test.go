@@ -34,7 +34,7 @@ func TestX509ClientWithCredentials(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	xclient := NewX509Client("http://localhost:8081/certificate", priv)
+	xclient := NewX509Client(server.URL + "/certificate", priv)
 
 	jwt, err := xclient.AuthenticateCredentials("http://localhost:8082", "scorpio")
 	if err != nil {

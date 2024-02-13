@@ -14,6 +14,6 @@ pki:
     - "^$"
     - ".*\\.example\\.com"
 oauth:
-  enabled: False
+  enabled: True
   trusted_issuers:
-    - "http://localhost:8082/jwks"
+    - "http://localhost:8082/*"

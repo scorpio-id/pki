@@ -53,3 +53,14 @@ func GenerateCSR(sans []string, bits int) ([]byte, error) {
 
 	return x509.CreateCertificateRequest(rand.Reader, &template, sample)
 }
+
+// Generate creates a CSR with existing rsa key pair
+func GenerateCSRWithPrivateKey(sans []string, private *rsa.PrivateKey) ([]byte, error) {
+	template := x509.CertificateRequest{
+		PublicKeyAlgorithm: 1,
+		PublicKey:          &private.PublicKey,
+		DNSNames:           sans,
+	}
+
+	return x509.CreateCertificateRequest(rand.Reader, &template, private)
+}

@@ -78,10 +78,10 @@ func TestX509ClientWithCredentials(t *testing.T) {
 	}
 	
 	sans := []string{"myapp.example.com"}
-	cert, err := xclient.GetCertificate(sans, jwt)
+
+	// cert is ignored element here
+	_, err = xclient.GetCertificate(sans, jwt)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	log.Print(cert)
 }

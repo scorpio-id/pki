@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -13,22 +12,24 @@ import (
 	"github.com/scorpio-id/pki/pkg/certificate"
 )
 
+// X509Client is a default client for X509 certificate services
 type X509Client struct {
 	certificateAuthorityURL string
 	private                 *rsa.PrivateKey
+	transport               *http.Client
 }
 
-func NewX509Client(certificateAuthorityURL string, private *rsa.PrivateKey) *X509Client {
+func NewX509Client(certificateAuthorityURL string, private *rsa.PrivateKey, transport *http.Client) *X509Client {
 	return &X509Client{
 		certificateAuthorityURL: certificateAuthorityURL,
 		private: private,
+		transport: transport,
 	}
 }
 
-func (xclient *X509Client) AuthenticateCredentials(issuerURL, clientId string) (string, error) {
-	endpoint := "/token?client_id=" + clientId + "&grant_type=client_credentials"
-
-	client := &http.Client{}
+// AuthenticateCredentials performs a client credentials OAuth grant for a JWT given an issuer URL and a client ID
+func (xclient *X509Client) AuthenticateCredentials(issuerURL, clientID string) (string, error) {
+	endpoint := "/token?client_id=" + clientID + "&grant_type=client_credentials"
 	
 	req, err := http.NewRequest("POST", issuerURL + endpoint, nil)
 	if err != nil {
@@ -37,7 +38,7 @@ func (xclient *X509Client) AuthenticateCredentials(issuerURL, clientId string) (
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := client.Do(req)
+	resp, err := xclient.transport.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -54,6 +55,7 @@ func (xclient *X509Client) AuthenticateCredentials(issuerURL, clientId string) (
 	return content["access_token"], nil
 }
 
+// GetCertificate generates a signed x509 certificate given SANs and an OAuth JWT
 func (xclient *X509Client) GetCertificate(sans []string, jwt string) (string, error) {
 	// generate CSR
 	csr, err := certificate.GenerateCSRWithPrivateKey(sans, xclient.private)
@@ -61,6 +63,7 @@ func (xclient *X509Client) GetCertificate(sans []string, jwt string) (string, er
 		return "", err
 	}
 
+	// CSR byte slice is originally ASN.1 encoding, convert to PEM
 	block := pem.Block{
 		Type:  "NEW CERTIFICATE REQUEST",
 		Bytes: csr,
@@ -87,8 +90,6 @@ func (xclient *X509Client) GetCertificate(sans []string, jwt string) (string, er
     if err != nil {
     	return "", err
     }
-
-	fmt.Printf(res.Status)
 
     defer res.Body.Close()
 

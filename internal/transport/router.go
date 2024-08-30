@@ -22,7 +22,7 @@ func NewRouter(cfg config.Config) *mux.Router{
 
 	// adding swagger endpoint
 	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:"+cfg.Server.Port+"/swagger/doc.json"), 
+		httpSwagger.URL("http://ca.scorpio.ordinarycomputing.com:"+cfg.Server.Port+"/swagger/doc.json"), 
 		httpSwagger.DeepLinking(true),
 		httpSwagger.DocExpansion("none"),
 		httpSwagger.DomID("swagger-ui"),

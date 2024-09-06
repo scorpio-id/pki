@@ -1,22 +1,23 @@
 package signatures
 
 import (
+	"bufio"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"time"
 
 	"encoding/pem"
 
+	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/data"
 	"github.com/scorpio-id/pki/pkg/certificate"
-	_ "github.com/scorpio-id/pki/docs"
-
 )
 
 // Signer generates an RSA public, private key pair and signs X.509 certificates
@@ -137,6 +138,50 @@ func (s *Signer) EnforceNamePolicy(csr []byte) error {
 	}
 
 	return err
+}
+
+func (s *Signer) SerializeX509() error {
+	out, err := os.Create("/etc/ssl/certs/root.pem")
+    if err != nil {
+        return err
+    }
+
+	defer out.Close()
+
+	w := bufio.NewWriter(out)
+
+	root := pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: s.Certificate.Raw,
+	}
+
+	// TODO: check to ensure serialized correctly
+	err = pem.Encode(w, &root)
+	if err != nil {
+		return err
+	}
+
+	key, err := os.Create("/etc/ssl/certs/private.key")
+    if err != nil {
+        return err
+    }
+
+	defer key.Close()
+
+	w = bufio.NewWriter(key)
+
+	private := pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(s.private), 
+	}
+
+	// TODO: check to ensure serialized correctly
+	err = pem.Encode(w, &private)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 
@@ -339,3 +384,5 @@ func VerifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
 
 	return nil
 }
+
+

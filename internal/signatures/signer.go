@@ -344,31 +344,27 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Public Key Handler Swagger Documentation
+// Public X.509 Handler Swagger Documentation
 //
-//	@Summary	Exposes the CAs Public Key
-//	@Tags		Public Keys
-//	@Success	200	{file}	Public	Key	(PEM Encoded)
+//	@Summary	Exposes the CAs Public X.509
+//	@Tags		Certificates
+//	@Success	200	{file}	Public	X.509	(PEM Encoded)
 //	@Router		/public [get]
 // 
-// PublicHandler returns the public key of the certificate authority
+// PublicHandler returns the public X.509 of the certificate authority
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO - return JSON (JWKS?) representation
-	public, err := x509.MarshalPKIXPublicKey(&s.private.PublicKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	w.Header().Set("Content-Type", "application/octet-stream")
 
-	block := pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: public,
+	root := pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: s.Certificate.Raw,
 	}
 
-	err = pem.Encode(w, &block)
+	// TODO: check to ensure serialized correctly
+	err := pem.Encode(w, &root)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(500)
 	}
 }
 

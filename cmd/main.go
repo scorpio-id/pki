@@ -34,6 +34,6 @@ func main() {
 	// create a new mux router
 	router := transport.NewRouter(cfg)
 
-	// start the server
-	log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, router))
+	// start the server with TLS
+	log.Fatal(http.ListenAndServeTLS(":"+cfg.Server.Port, "/etc/ssl/certs/root.pem", "/etc/ssl/certs/private.key", router))
 }

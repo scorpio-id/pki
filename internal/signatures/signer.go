@@ -140,7 +140,9 @@ func (s *Signer) EnforceNamePolicy(csr []byte) error {
 	return err
 }
 
+// SerializeX509 installs certs on the local linux filesystem
 func (s *Signer) SerializeX509() error {
+	// TODO: move filepath to config
 	out, err := os.Create("/etc/ssl/certs/root.pem")
     if err != nil {
         return err

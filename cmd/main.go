@@ -35,5 +35,5 @@ func main() {
 	router := transport.NewRouter(cfg)
 
 	// start the server with TLS
-	log.Fatal(http.ListenAndServeTLS(":"+cfg.Server.Port, "/etc/ssl/certs/root.pem", "/etc/ssl/certs/private.key", router))
+	log.Fatal(http.ListenAndServeTLS(":"+cfg.Server.Port, "/etc/ssl/certs/scorpio-root.pem", "/etc/ssl/certs/scorpio-private.key", router))
 }

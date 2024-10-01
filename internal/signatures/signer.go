@@ -163,6 +163,8 @@ func (s *Signer) SerializeX509() error {
 		return err
 	}
 
+	w.Flush()
+
 	key, err := os.Create("/etc/ssl/certs/scorpio-private.key")
     if err != nil {
         return err
@@ -182,6 +184,8 @@ func (s *Signer) SerializeX509() error {
 	if err != nil {
 		return err
 	}
+
+	w.Flush()
 
 	return nil
 }

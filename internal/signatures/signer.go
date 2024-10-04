@@ -175,7 +175,7 @@ func (s *Signer) SerializeX509() error {
 	w = bufio.NewWriter(key)
 
 	private := pem.Block{
-		Type:  "PRIVATE KEY",
+		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(s.private), 
 	}
 

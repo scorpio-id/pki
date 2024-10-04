@@ -163,15 +163,9 @@ func (s *Signer) SerializeX509() error {
 		return err
 	}
 
-	// TODO: check to ensure serialized correctly
-	err = pem.Encode(w, &root)
-	if err != nil {
-		return err
-	}
-
 	w.Flush()
 
-	key, err := os.Create("/etc/ssl/certs/scorpio-private.key")
+	key, err := os.Create("/etc/ssl/certs/scorpio-private.pem")
     if err != nil {
         return err
     }
@@ -180,14 +174,9 @@ func (s *Signer) SerializeX509() error {
 
 	w = bufio.NewWriter(key)
 
-	p, err := x509.MarshalPKCS8PrivateKey(s.private)
-	if err != nil {
-		return err
-	}
-
 	private := pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: p, 
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(s.private), 
 	}
 
 	// TODO: check to ensure serialized correctly

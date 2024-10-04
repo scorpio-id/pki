@@ -152,20 +152,15 @@ func (s *Signer) SerializeX509() error {
 
 	w := bufio.NewWriter(out)
 
-	p := pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: x509.MarshalPKCS1PublicKey(&s.private.PublicKey),
-	}
-
-	// TODO: check to ensure serialized correctly
-	err = pem.Encode(w, &p)
-	if err != nil {
-		return err
-	}
-
 	root := pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: s.Certificate.Raw,
+	}
+
+	// TODO: check to ensure serialized correctly
+	err = pem.Encode(w, &root)
+	if err != nil {
+		return err
 	}
 
 	// TODO: check to ensure serialized correctly
@@ -185,9 +180,14 @@ func (s *Signer) SerializeX509() error {
 
 	w = bufio.NewWriter(key)
 
+	p, err := x509.MarshalPKCS8PrivateKey(&s.private)
+	if err != nil {
+		return err
+	}
+
 	private := pem.Block{
 		Type:  "PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(s.private), 
+		Bytes: p, 
 	}
 
 	// TODO: check to ensure serialized correctly

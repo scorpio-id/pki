@@ -29,7 +29,7 @@ func main() {
 	cfg := config.NewConfig("internal/config/local.yml")
 
 	// configuring swagger documentation
-	docs.SwaggerInfo.Host = cfg.Server.Host + ":" + cfg.Server.Host
+	docs.SwaggerInfo.Host = cfg.Server.Host + ":" + cfg.Server.Port
 
 	// create a new mux router
 	router := transport.NewRouter(cfg)

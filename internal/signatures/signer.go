@@ -39,7 +39,7 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
-	csr, err := certificate.GenerateCSR([]string{cfg.PKI.CertificateAuthority.CommonName}, cfg.PKI.RSABits)
+	csr, err := certificate.GenerateCSRWithPrivateKey([]string{cfg.PKI.CertificateAuthority.CommonName}, private)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -165,7 +165,7 @@ func (s *Signer) SerializeX509() error {
 
 	w.Flush()
 
-	key, err := os.Create("/etc/ssl/certs/scorpio-private.pem")
+	key, err := os.Create("/etc/ssl/certs/scorpio-private.key")
     if err != nil {
         return err
     }
@@ -175,7 +175,7 @@ func (s *Signer) SerializeX509() error {
 	w = bufio.NewWriter(key)
 
 	private := pem.Block{
-		Type:  "RSA PRIVATE KEY",
+		Type:  "PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(s.private), 
 	}
 

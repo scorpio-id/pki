@@ -180,7 +180,7 @@ func (s *Signer) SerializeX509() error {
 
 	w = bufio.NewWriter(key)
 
-	p, err := x509.MarshalPKCS8PrivateKey(&s.private)
+	p, err := x509.MarshalPKCS8PrivateKey(s.private)
 	if err != nil {
 		return err
 	}

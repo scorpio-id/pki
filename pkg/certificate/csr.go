@@ -100,5 +100,5 @@ func GenerateRootCertificate(issuer, common string, sans []string, private *rsa.
 		SerialNumber: 			big.NewInt(math2.Int63()),
 	}
 
-	return x509.CreateCertificate(rand.Reader, &template, &template, private.PublicKey, private)
+	return x509.CreateCertificate(rand.Reader, &template, &template, &private.PublicKey, private)
 }

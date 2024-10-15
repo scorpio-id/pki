@@ -39,13 +39,12 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
-	csr, err := certificate.GenerateCSRWithPrivateKey([]string{cfg.PKI.CertificateAuthority.CommonName}, private)
+	duration, err := time.ParseDuration(cfg.PKI.CertificateTTL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	duration, err := time.ParseDuration(cfg.PKI.CertificateTTL)
-	cert, err := certificate.Sign(csr, private, cfg.PKI.SerialNumber, duration)
+	cert, err := certificate.GenerateRootCertificate("ca.scorpio.ordinarycomputing.com", "ca.scorpio.ordinarycomputing.com", []string{}, private, duration)
 	if err != nil {
 		log.Fatal(err)
 	}

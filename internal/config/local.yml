@@ -8,14 +8,13 @@ pki:
   rsa_bits: 2048
   serial_number: 1000
   csr_max_memory: 1024
-  certificate_ttl: "60m"
+  certificate_ttl: "8760h"
   certificate_authority: 
-    common_name: "scorpio.io"
+    common_name: "ca.scorpio.ordinarycomputing.com"
   allowed_names:
     - "^$"
-    - ".*\\.scorpio\\.io"
-    - ".*\\.example\\.com"
+    - ".*\\.scorpio\\.ordinarycomputing\\.com"
 oauth:
   enabled: False
   trusted_issuers:
-    - "http://localhost:8082/jwks"
+    - "http://scorpio.ordinarycomputing.com:8082/jwks"

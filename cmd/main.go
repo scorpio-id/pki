@@ -29,11 +29,11 @@ func main() {
 	cfg := config.NewConfig("internal/config/local.yml")
 
 	// configuring swagger documentation
-	docs.SwaggerInfo.Host = cfg.Server.Host + ":" + cfg.Server.Host
+	docs.SwaggerInfo.Host = cfg.Server.Host + ":" + cfg.Server.Port
 
 	// create a new mux router
 	router := transport.NewRouter(cfg)
 
-	// start the server
-	log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, router))
+	// start the server with TLS
+	log.Fatal(http.ListenAndServeTLS(":"+cfg.Server.Port, "/etc/ssl/certs/scorpio-root.pem", "/etc/ssl/certs/scorpio-private.key", router))
 }

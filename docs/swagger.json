@@ -1,21 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "A configurable X509 Certificate Authority management tool implemented in Go.",
-        "title": "Scorpio PKI Service",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support",
-            "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
-        },
-        "license": {
-            "name": "MIT",
-            "url": "https://mit-license.org"
-        },
-        "version": "1.0"
+        "contact": {}
     },
-    "basePath": "/",
     "paths": {
         "/certificate": {
             "post": {
@@ -90,9 +77,9 @@
         "/public": {
             "get": {
                 "tags": [
-                    "Public Keys"
+                    "Certificates"
                 ],
-                "summary": "Exposes the CAs Public Key",
+                "summary": "Exposes the CAs Public X.509",
                 "responses": {
                     "200": {
                         "description": "OK",

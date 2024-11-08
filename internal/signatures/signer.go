@@ -52,6 +52,8 @@ func NewSigner(cfg config.Config) *Signer {
 	// create store and add own name to store
 	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
 	store := data.NewSubjectAlternateNameStore()
+
+	// FIXME - consolidate config, move pki section to root section
 	ca := data.SANs{
 		SerialNumber: cfg.PKI.SerialNumber,
 		Names:        []string{cfg.PKI.CertificateAuthority.CommonName},

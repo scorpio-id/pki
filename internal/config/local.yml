@@ -14,7 +14,22 @@ pki:
   allowed_names:
     - "^$"
     - ".*\\.scorpio\\.ordinarycomputing\\.com"
+
+# oauth configuration
 oauth:
   enabled: False
   trusted_issuers:
     - "http://scorpio.ordinarycomputing.com:8082/jwks"
+
+# root CA configuration
+root:
+  country: "USA"
+  org: "Ordinary Computing Co."
+  ou: "Technology"
+  locality: "Lewes"
+  province: "Delaware"
+  address: "16192 Coastal Highway"
+  postal: "19958"
+  cn: "ca.scorpio.ordinarycomputing.com"
+  sans:
+    - "ca.scorpio.ordinarycomputing.com"

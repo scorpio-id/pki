@@ -33,3 +33,7 @@ root:
   cn: "ca.scorpio.ordinarycomputing.com"
   sans:
     - "ca.scorpio.ordinarycomputing.com"
+  install:
+    path: "/etc/ssl/certs"
+    cert_filename: "scorpio-root.pem"
+    private_filename: "scorpio-private.key"

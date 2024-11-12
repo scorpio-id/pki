@@ -3,6 +3,7 @@ package transport
 import (
 	"log"
 	"net/http"
+	"runtime"
 
 	"github.com/gorilla/mux"
 
@@ -19,12 +20,6 @@ func NewRouter(cfg config.Config) *mux.Router{
 	router := mux.NewRouter()
 
 	signer := signatures.NewSigner(cfg)
-
-	// install certificates
-	err := signer.SerializeX509()
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// adding swagger endpoint
 	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(
@@ -45,6 +40,15 @@ func NewRouter(cfg config.Config) *mux.Router{
 		}
 
 		router.Use(om.Middleware)
+	}
+
+	// only install certificates locally if target OS is linux
+	if runtime.GOOS == "linux" {
+		// install certificates
+		err := signer.SerializeX509()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return router

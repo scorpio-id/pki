@@ -39,6 +39,11 @@ type Config struct {
 		PostalCode string `yaml:"postal"`	
 		CommonName string `yaml:"cn"`	
 		SANs []string `yaml:"sans"`
+		Install struct{
+			Path string `yaml:"path"`
+			CertFilename string `yaml:"cert_filename"`
+			PrivateKeyFilename string `yaml:"private_filename"`
+		} `yaml:"install"`
 	} `yaml:"root"`
 }
 

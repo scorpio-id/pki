@@ -1,13 +1,13 @@
 package main
 
-import(
+import (
 	"log"
 	"net/http"
+	"runtime"
 
+	"github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/transport"
-	"github.com/scorpio-id/pki/docs"
-
 )
 
 //	@title			Scorpio PKI Service
@@ -34,6 +34,13 @@ func main() {
 	// create a new mux router
 	router := transport.NewRouter(cfg)
 
-	// start the server with TLS
-	log.Fatal(http.ListenAndServeTLS(":"+cfg.Server.Port, "/etc/ssl/certs/scorpio-root.pem", "/etc/ssl/certs/scorpio-private.key", router))
+	if runtime.GOOS == "linux"{
+		certFilePath := cfg.Root.Install.Path + "/" + cfg.Root.Install.CertFilename
+		privateKeyFilePath := cfg.Root.Install.Path + "/" + cfg.Root.Install.PrivateKeyFilename
+
+		// start the server with TLS
+		log.Fatal(http.ListenAndServeTLS(":"+cfg.Server.Port, certFilePath, privateKeyFilePath, router))
+	} else {
+		log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, router))
+	}
 }

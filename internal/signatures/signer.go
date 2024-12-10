@@ -362,6 +362,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO - return JSON (JWKS?) representation
 	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"scorpio.cer\"")
 
 	root := pem.Block{
 		Type:  "CERTIFICATE",

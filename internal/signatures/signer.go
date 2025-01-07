@@ -44,7 +44,7 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
-	cert, err := certificate.GenerateRootCertificate("ca.scorpio.ordinarycomputing.com", "ca.scorpio.ordinarycomputing.com", []string{"ca.scorpio.ordinarycomputing.com"}, private, duration)
+	cert, err := certificate.GenerateRootCertificate(cfg, private, duration)
 	if err != nil {
 		log.Fatal(err)
 	}

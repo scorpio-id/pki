@@ -7,10 +7,11 @@ import (
 	"crypto/x509/pkix"
 	"log"
 	"math/big"
-	"time"
 	math2 "math/rand"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/scorpio-id/pki/internal/config"
 )
 
 // TODO - add issuer information
@@ -70,7 +71,7 @@ func GenerateCSRWithPrivateKey(sans []string, private *rsa.PrivateKey) ([]byte, 
 }
 
 
-func GenerateRootCertificate(issuer, common string, sans []string, private *rsa.PrivateKey, duration time.Duration) ([]byte, error){
+func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duration time.Duration) ([]byte, error){
 	// compute TTL
 	t := time.Now()
 	after := t.Add(duration)
@@ -78,22 +79,23 @@ func GenerateRootCertificate(issuer, common string, sans []string, private *rsa.
 	serial := uuid.NewString()
 
 	name := pkix.Name{
-		Country: []string{"USA"},
-		Organization: []string{"Ordinary Computing Co."},
-		OrganizationalUnit: []string{"Technology"},
-		Locality: []string{"Lewes"},
-		Province: []string{"Delaware"},
-		StreetAddress: []string{"16192 Coastal Highway"},
-		PostalCode: []string{"19958"},
+		Country: []string{cfg.Root.Country},
+		Organization: []string{cfg.Root.Organization},
+		OrganizationalUnit: []string{cfg.Root.OrganizationalUnit},
+		Locality: []string{cfg.Root.Locality},
+		Province: []string{cfg.Root.Province},
+		StreetAddress: []string{cfg.Root.StreetAddress},
+		PostalCode: []string{cfg.Root.PostalCode},
 		SerialNumber: serial,
-		CommonName: common,
+		CommonName: cfg.Root.CommonName,
 	}
 
+	// using Common Name as issuer in root x509 template
 	template := x509.Certificate{
 		Issuer: 	  			name,	
 		Subject:      			name,
-		DNSNames:     			sans,
-		IssuingCertificateURL: 	[]string{issuer},
+		DNSNames:     			cfg.Root.SANs,
+		IssuingCertificateURL: 	[]string{cfg.Root.CommonName},
 		IsCA: 					true,	
 		NotAfter:     			after,
 		NotBefore:    			t,

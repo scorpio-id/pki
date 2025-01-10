@@ -351,6 +351,10 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO - get keytab file from Kerberos
+}
+
 // Public X.509 Handler Swagger Documentation
 //
 //	@Summary	Exposes the CAs Public X.509

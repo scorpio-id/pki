@@ -4,9 +4,14 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"log"
 	"math/big"
+	math2 "math/rand"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/scorpio-id/pki/internal/config"
 )
 
 // TODO - add issuer information
@@ -63,4 +68,39 @@ func GenerateCSRWithPrivateKey(sans []string, private *rsa.PrivateKey) ([]byte, 
 	}
 
 	return x509.CreateCertificateRequest(rand.Reader, &template, private)
+}
+
+
+func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duration time.Duration) ([]byte, error){
+	// compute TTL
+	t := time.Now()
+	after := t.Add(duration)
+
+	serial := uuid.NewString()
+
+	name := pkix.Name{
+		Country: []string{cfg.Root.Country},
+		Organization: []string{cfg.Root.Organization},
+		OrganizationalUnit: []string{cfg.Root.OrganizationalUnit},
+		Locality: []string{cfg.Root.Locality},
+		Province: []string{cfg.Root.Province},
+		StreetAddress: []string{cfg.Root.StreetAddress},
+		PostalCode: []string{cfg.Root.PostalCode},
+		SerialNumber: serial,
+		CommonName: cfg.Root.CommonName,
+	}
+
+	// using Common Name as issuer in root x509 template
+	template := x509.Certificate{
+		Issuer: 	  			name,	
+		Subject:      			name,
+		DNSNames:     			cfg.Root.SANs,
+		IssuingCertificateURL: 	[]string{cfg.Root.CommonName},
+		IsCA: 					true,	
+		NotAfter:     			after,
+		NotBefore:    			t,
+		SerialNumber: 			big.NewInt(math2.Int63()),
+	}
+
+	return x509.CreateCertificate(rand.Reader, &template, &template, &private.PublicKey, private)
 }

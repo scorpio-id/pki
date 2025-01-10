@@ -9,16 +9,7 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support",
-            "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
-        },
-        "license": {
-            "name": "MIT",
-            "url": "https://mit-license.org"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -97,9 +88,9 @@ const docTemplate = `{
         "/public": {
             "get": {
                 "tags": [
-                    "Public Keys"
+                    "Certificates"
                 ],
-                "summary": "Exposes the CAs Public Key",
+                "summary": "Exposes the CAs Public X.509",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -115,12 +106,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "",
 	Host:             "",
-	BasePath:         "/",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Scorpio PKI Service",
-	Description:      "A configurable X509 Certificate Authority management tool implemented in Go.",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

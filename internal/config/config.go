@@ -29,6 +29,22 @@ type Config struct {
 		Enabled        bool     `yaml:"enabled"`
 		TrustedIssuers []string `yaml:"trusted_issuers"`
 	} `yaml:"oauth"`
+	Root struct {
+		Country string `yaml:"country"`	
+		Organization string `yaml:"org"`	
+		OrganizationalUnit string `yaml:"ou"`	
+		Locality string `yaml:"locality"`	
+		Province string `yaml:"province"`	
+		StreetAddress string `yaml:"address"`	
+		PostalCode string `yaml:"postal"`	
+		CommonName string `yaml:"cn"`	
+		SANs []string `yaml:"sans"`
+		Install struct{
+			Path string `yaml:"path"`
+			CertFilename string `yaml:"cert_filename"`
+			PrivateKeyFilename string `yaml:"private_filename"`
+		} `yaml:"install"`
+	} `yaml:"root"`
 }
 
 // NewConfig takes a .yml filename from the same /config directory, and returns a populated configuration

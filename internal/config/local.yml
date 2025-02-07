@@ -37,3 +37,8 @@ root:
     path: "/etc/ssl/certs"
     cert_filename: "scorpio-root.pem"
     private_filename: "scorpio-private.key"
+
+# SPNEGO NFS configuration
+spnego:
+  volume: "/scorpio"
+  keytab: "scorpio-pki.keytab"

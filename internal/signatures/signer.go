@@ -14,6 +14,7 @@ import (
 
 	"encoding/pem"
 
+	"github.com/jcmturner/gokrb5/keytab"
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/data"
@@ -30,6 +31,8 @@ type Signer struct {
 	Certificate         *x509.Certificate
 	private             *rsa.PrivateKey
 	Store               *data.SubjectAlternateNameStore
+	Volume				string
+	Keytab				string
 }
 
 func NewSigner(cfg config.Config) *Signer {
@@ -78,6 +81,8 @@ func NewSigner(cfg config.Config) *Signer {
 		Certificate:         x509,
 		private:             private,
 		Store:               store,
+		Volume: 			 cfg.Spnego.Volume,
+		Keytab: 			 cfg.Spnego.Keytab,
 	}
 }
 
@@ -352,7 +357,15 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO - get keytab file from Kerberos
+	_, err := keytab.Load(s.Volume + "/" + s.Keytab)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	// TODO : get keytab file from Kerberos
+	_ = log.New(os.Stderr, "GOKRB5 Service: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+
 }
 
 // Public X.509 Handler Swagger Documentation

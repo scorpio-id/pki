@@ -17,3 +17,8 @@ oauth:
   enabled: True
   trusted_issuers:
     - "http://localhost:8082/*"
+
+# SPNEGO NFS configuration
+spnego:
+  volume: "/scorpio"
+  keytab: "scorpio-pki.keytab"

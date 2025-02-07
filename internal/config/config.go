@@ -45,7 +45,12 @@ type Config struct {
 			PrivateKeyFilename string `yaml:"private_filename"`
 		} `yaml:"install"`
 	} `yaml:"root"`
+	Spnego struct{
+		Volume string `yaml:"volume"`
+		Keytab string `yaml:"keytab"`
+	} `yaml:"spnego"`
 }
+
 
 // NewConfig takes a .yml filename from the same /config directory, and returns a populated configuration
 func NewConfig(s string) Config {

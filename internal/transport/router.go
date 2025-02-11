@@ -3,10 +3,15 @@ package transport
 import (
 	"log"
 	"net/http"
+	"os"
 	"runtime"
+	"time"
 
 	"github.com/gorilla/mux"
 
+	"github.com/jcmturner/gokrb5/v8/keytab"
+	"github.com/jcmturner/gokrb5/v8/service"
+	"github.com/jcmturner/gokrb5/v8/spnego"
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/signatures"
@@ -50,6 +55,30 @@ func NewRouter(cfg config.Config) *mux.Router{
 			log.Fatal(err)
 		}
 	}
+
+	// WARNING - scorpio kerberos service must have already created keytab on mounted volume prior to start
+	// check for presence of keytab before init
+	for {
+		_, err := os.Stat(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab)
+		if err == nil {
+			break
+		} else {
+			time.Sleep(time.Second * 2)
+		}
+	}
+	
+	// instantiate SPNEGO authentication for PKI SPN
+	kt, err := keytab.Load(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	// TODO : get keytab file from Kerberos
+	l := log.New(os.Stderr, "PKI SPNEGO: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+	h := spnego.SPNEGOKRB5Authenticate(http.HandlerFunc(signer.SPNEGOHandler), kt, service.Logger(l))
+
+	router.HandleFunc("/spnego", h.ServeHTTP)
 
 	return router
 }

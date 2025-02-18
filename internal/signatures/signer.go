@@ -269,7 +269,7 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 // PKCS #12 Handler Swagger Documentation
 //
 //	@Summary		Handles PKCS #12 request
-//	@Description	CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
+//	@Description	PKCSHandler accepts a list of SANs in a multipart form data request and returns a PEM file or JSON content encoding a X.509 and RSA key pair
 //	@Tags			PKCS-12
 //	@Accept			x-www-form-urlencoded
 //	@Produce		octet-stream
@@ -362,8 +362,6 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400				{string}	string	"Bad Request"
 //	@Failure		500				{string}	string	"Internal Server Error"
 //	@Router			/spnego [post]
-//
-// PKCSHandler accepts SAN data and returns a PKCS12 file or JSON content given HTTP Accept header
 func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 	// verify Content-Type
 	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {

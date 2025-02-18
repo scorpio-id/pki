@@ -33,11 +33,13 @@ require (
 	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/tools v0.16.0 // indirect
+	gopkg.in/jcmturner/gokrb5.v7 v7.5.0 // indirect
 )
 
 require (
 	github.com/google/uuid v1.4.0
 	github.com/gorilla/mux v1.8.0
+	github.com/jcmturner/gokrb5 v8.4.4+incompatible
 	github.com/jcmturner/gokrb5/v8 v8.4.4
 	golang.org/x/crypto v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1

@@ -351,8 +351,84 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SPNEGO Handler Swagger Documentation
+//
+//	@Summary		Handles SPNEGO request
+//	@Description	SPNEGOHandler accepts a list of SANs to produce a PKCS-12 
+//	@Tags			SPNEGO
+//	@Accept			x-www-form-urlencoded
+//	@Produce		octet-stream
+//	@Success		200				{file}		Certificate.pfx
+//	@Failure		400				{string}	string	"Bad Request"
+//	@Failure		500				{string}	string	"Internal Server Error"
+//	@Router			/spnego [post]
+//
+// PKCSHandler accepts SAN data and returns a PKCS12 file or JSON content given HTTP Accept header
 func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	// verify Content-Type
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		return
+	}
+
+	// generate new RSA identity for PKCS12
+	private, err := rsa.GenerateKey(rand.Reader, s.RSABits)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	values := r.URL.Query()
+	if values == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// FIXME - do we need to do this to get duplicate query params?
+	var sans []string
+	for k, v := range values {
+		if k == "san" {
+			sans = v
+		}
+	}
+
+	csr, err := certificate.GenerateCSR(sans, s.RSABits)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	csr, err = certificate.InsertKeyCSR(csr, private)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	cert, err := s.CreateX509(csr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	intermediate := s.Certificate.Raw
+
+	// returns DER-encoded PKCS12 file
+	pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	pkcs12 := pem.Block{
+		Type:  "PKCS12",
+		Bytes: pfx,
+	}
+
+	err = pem.Encode(w, &pkcs12)
+	if err != nil {
+		log.Fatal(err)
+	}	
 }
 
 // Public X.509 Handler Swagger Documentation

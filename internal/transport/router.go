@@ -78,7 +78,7 @@ func NewRouter(cfg config.Config) *mux.Router{
 
 	h := spnego.SPNEGOKRB5Authenticate(http.HandlerFunc(signer.SPNEGOHandler), kt, service.Logger(l))
 
-	router.HandleFunc("/spnego", h.ServeHTTP)
+	router.HandleFunc("/spnego", h.ServeHTTP).Methods(http.MethodPost, http.MethodOptions)
 
 	return router
 }

@@ -19,7 +19,7 @@ pki:
 oauth:
   enabled: False
   trusted_issuers:
-    - "http://scorpio.ordinarycomputing.com:8082/jwks"
+    - "http://oauth.scorpio.ordinarycomputing.com/jwks"
 
 # root CA configuration
 root:

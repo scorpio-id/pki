@@ -59,11 +59,13 @@ func NewRouter(cfg config.Config) *mux.Router{
 
 	// WARNING - scorpio kerberos service must have already created keytab on mounted volume prior to start
 	// check for presence of keytab before init
+	fmt.Printf("checking for mounted volume at: " + cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab)
 	for {
 		_, err := os.Stat(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab)
 		if err == nil {
 			break
 		} else {
+			fmt.Printf("not found -- sleeping ...")
 			time.Sleep(time.Second * 2)
 		}
 	}

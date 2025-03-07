@@ -22,3 +22,4 @@ oauth:
 spnego:
   volume: "/scorpio"
   keytab: "scorpio-pki.keytab"
+  password: "move-to-kube-secrets-2222"

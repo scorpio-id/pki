@@ -18,6 +18,9 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/data"
 	"github.com/scorpio-id/pki/pkg/certificate"
+
+	"github.com/jcmturner/gokrb5/v8/keytab"
+	"github.com/jcmturner/gokrb5/v8/iana/etypeID"
 )
 
 // Signer generates an RSA public, private key pair and signs X.509 certificates
@@ -187,6 +190,29 @@ func (s *Signer) SerializeX509() error {
 	}
 
 	w.Flush()
+
+	return nil
+}
+
+func (s *Signer) GenerateKeytab(cfg config.Config) error {
+	kt := keytab.New()
+	ts := time.Now()
+
+	err := kt.AddEntry(cfg.Spnego.ServicePrincipal, cfg.Spnego.Realm, cfg.Spnego.Password, ts, uint8(1), etypeID.AES256_CTS_HMAC_SHA1_96)
+	if err != nil {
+		return err
+	}
+
+	generated, err := kt.Marshal()
+	if err != nil {
+		return err
+	}
+
+	// TODO: Permission keytab file correctly 
+	os.WriteFile(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab, generated, 0777)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

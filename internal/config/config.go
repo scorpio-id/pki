@@ -46,8 +46,11 @@ type Config struct {
 		} `yaml:"install"`
 	} `yaml:"root"`
 	Spnego struct{
-		Volume string `yaml:"volume"`
-		Keytab string `yaml:"keytab"`
+		ServicePrincipal string `yaml:"service_principal"`
+		Password         string `yaml:"password"`
+		Realm            string `yaml:"realm"`
+		Volume           string `yaml:"volume"`
+		Keytab           string `yaml:"keytab"`
 	} `yaml:"spnego"`
 }
 

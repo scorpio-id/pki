@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"time"
 
 	"github.com/gorilla/mux"
 
@@ -57,17 +56,10 @@ func NewRouter(cfg config.Config) *mux.Router{
 		}
 	}
 
-	// WARNING - scorpio kerberos service must have already created keytab on mounted volume prior to start
-	// check for presence of keytab before init
-	fmt.Printf("checking for mounted volume at: " + cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab)
-	for {
-		_, err := os.Stat(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab)
-		if err == nil {
-			break
-		} else {
-			fmt.Printf("not found -- sleeping ...")
-			time.Sleep(time.Second * 2)
-		}
+	// generate keytab for SPNEGO handler
+	err := signer.GenerateKeytab(cfg)
+	if err != nil {
+		log.Fatal(err)
 	}
 	
 	// instantiate SPNEGO authentication for PKI SPN

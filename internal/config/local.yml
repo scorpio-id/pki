@@ -19,7 +19,7 @@ pki:
 oauth:
   enabled: False
   trusted_issuers:
-    - "http://oauth.scorpio.ordinarycomputing.com/jwks"
+    - "http://oauth.scorpio.ordinarycomputing.com:8082/jwks"
 
 # root CA configuration
 root:
@@ -38,7 +38,11 @@ root:
     cert_filename: "scorpio-root.pem"
     private_filename: "scorpio-private.key"
 
-# SPNEGO NFS configuration
+# SPNEGO configuration
 spnego:
+  service_principal: "scorpio/ca.scorpio.ordinarycomputing.com@KRB.SCORPIO.ORDINARYCOMPUTING.COM"
+  password: "move-to-kube-secrets-2222"
+  realm: "KRB.SCORPIO.ORDINARYCOMPUTING.COM"
   volume: "/scorpio"
   keytab: "scorpio-pki.keytab"
+  

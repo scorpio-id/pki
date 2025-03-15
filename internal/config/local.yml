@@ -40,7 +40,7 @@ root:
 
 # SPNEGO configuration
 spnego:
-  service_principal: "scorpio/ca.scorpio.ordinarycomputing.com@KRB.SCORPIO.ORDINARYCOMPUTING.COM"
+  service_principal: "scorpio-pki/ca.scorpio.ordinarycomputing.com"
   password: "move-to-kube-secrets-2222"
   realm: "KRB.SCORPIO.ORDINARYCOMPUTING.COM"
   volume: "/scorpio"

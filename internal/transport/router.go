@@ -71,11 +71,9 @@ func NewRouter(cfg config.Config) *mux.Router{
 	// TODO : get keytab file from Kerberos
 	l := log.New(os.Stderr, "PKI SPNEGO: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	h := spnego.SPNEGOKRB5Authenticate(http.HandlerFunc(signer.SPNEGOHandler), kt, service.Logger(l))
+	h := spnego.SPNEGOKRB5Authenticate(http.HandlerFunc(signer.SPNEGOHandler), kt, service.Logger(l), service.DecodePAC(false))
 
 	router.HandleFunc("/spnego", h.ServeHTTP).Methods(http.MethodPost, http.MethodOptions)
-
-	fmt.Printf("PKI router ready!")
 
 	return router
 }

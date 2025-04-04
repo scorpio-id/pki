@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"

@@ -64,6 +64,7 @@ func GenerateCSR(sans []string, bits int) ([]byte, error) {
 
 // Generate creates a CSR with existing rsa key pair
 func GenerateCSRWithPrivateKey(sans []string, private *rsa.PrivateKey) ([]byte, error) {
+	// FIXME generate subject content and add to template
 	template := x509.CertificateRequest{
 		PublicKeyAlgorithm: 1,
 		PublicKey:          &private.PublicKey,

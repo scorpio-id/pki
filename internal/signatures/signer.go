@@ -21,6 +21,8 @@ import (
 
 	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/iana/etypeID"
+
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 // Signer generates an RSA public, private key pair and signs X.509 certificates
@@ -332,17 +334,17 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	csr, err := certificate.GenerateCSR(sans, s.RSABits)
+	csr, err := certificate.GenerateCSRWithPrivateKey(sans, private)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
-	csr, err = certificate.InsertKeyCSR(csr, private)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Fatal(err)
-	}
+	// csr, err = certificate.InsertKeyCSR(csr, private)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	log.Fatal(err)
+	// }
 
 	cert, err := s.CreateX509(csr)
 	if err != nil {
@@ -350,14 +352,24 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	intermediate := s.Certificate.Raw
+	intermediate := []*x509.Certificate{s.Certificate}
+
+	leaf, err := x509.ParseCertificate(cert)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	pfx, err := pkcs12.Encode(rand.Reader, private, leaf, intermediate, "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	// returns DER-encoded PKCS12 file
-	pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Fatal(err)
-	}
+	// pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	log.Fatal(err)
+	// }
 
 	// TODO - support JSON responses
 	if r.Header.Get("Accept") == "application/json" {
@@ -365,16 +377,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
-
-	pkcs12 := pem.Block{
-		Type:  "PKCS12",
-		Bytes: pfx,
-	}
-
-	err = pem.Encode(w, &pkcs12)
-	if err != nil {
-		log.Fatal(err)
-	}
+	w.Write(pfx)
 }
 
 // SPNEGO Handler Swagger Documentation

@@ -14,6 +14,7 @@ pki:
   allowed_names:
     - "^$"
     - ".*\\.scorpio\\.ordinarycomputing\\.com"
+    - ".*\\.example\\.com"
 
 # oauth configuration
 oauth:

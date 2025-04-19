@@ -56,23 +56,25 @@ func NewRouter(cfg config.Config) *mux.Router{
 	}
 
 	// generate keytab for SPNEGO handler
-	err := signer.GenerateKeytab(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	if runtime.GOOS == "linux" {
+		err := signer.GenerateKeytab(cfg)
+		if err != nil {
+			log.Fatal(err)
+		}
 	
-	// instantiate SPNEGO authentication for PKI SPN
-	kt, err := keytab.Load(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab)
-	if err != nil {
-		log.Fatal(err)
+		// instantiate SPNEGO authentication for PKI SPN
+		kt, err := keytab.Load(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// TODO : get keytab file from Kerberos
+		l := log.New(os.Stderr, "PKI SPNEGO: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+		h := spnego.SPNEGOKRB5Authenticate(http.HandlerFunc(signer.SPNEGOHandler), kt, service.Logger(l), service.DecodePAC(false))
+
+		router.HandleFunc("/spnego", h.ServeHTTP).Methods(http.MethodPost, http.MethodOptions)
 	}
-	
-	// TODO : get keytab file from Kerberos
-	l := log.New(os.Stderr, "PKI SPNEGO: ", log.Ldate|log.Ltime|log.Lshortfile)
-
-	h := spnego.SPNEGOKRB5Authenticate(http.HandlerFunc(signer.SPNEGOHandler), kt, service.Logger(l), service.DecodePAC(false))
-
-	router.HandleFunc("/spnego", h.ServeHTTP).Methods(http.MethodPost, http.MethodOptions)
 
 	return router
 }

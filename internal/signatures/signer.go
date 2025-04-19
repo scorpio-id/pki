@@ -133,7 +133,7 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Name)
+	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Certificate)
 }
 
 // EnforceNamePolicy ensures that requested Common Name and SANs are within configured naming standards policy

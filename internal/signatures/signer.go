@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,13 +15,14 @@ import (
 
 	"encoding/pem"
 
+	"github.com/google/uuid"
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/data"
 	"github.com/scorpio-id/pki/pkg/certificate"
 
-	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/iana/etypeID"
+	"github.com/jcmturner/gokrb5/v8/keytab"
 
 	"software.sslmate.com/src/go-pkcs12"
 )
@@ -32,6 +34,7 @@ type Signer struct {
 	CurrentSerialNumber int64
 	AllowedSANs         []string
 	Duration            time.Duration
+	Name                pkix.Name
 	Certificate         *x509.Certificate
 	private             *rsa.PrivateKey
 	Store               *data.SubjectAlternateNameStore
@@ -74,12 +77,27 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
+	serialnum := uuid.NewString()
+	
+	name := pkix.Name{
+		Country: []string{cfg.Root.Country},
+		Organization: []string{cfg.Root.Organization},
+		OrganizationalUnit: []string{cfg.Root.OrganizationalUnit},
+		Locality: []string{cfg.Root.Locality},
+		Province: []string{cfg.Root.Province},
+		StreetAddress: []string{cfg.Root.StreetAddress},
+		PostalCode: []string{cfg.Root.PostalCode},
+		SerialNumber: serialnum,
+		CommonName: cfg.Root.CommonName,
+	}
+
 	return &Signer{
 		RSABits:             cfg.PKI.RSABits,
 		CSRMaxMemory:        cfg.PKI.CSRMaxMemory,
 		CurrentSerialNumber: cfg.PKI.SerialNumber,
 		AllowedSANs:         cfg.PKI.AllowedNames,
 		Duration:            duration,
+		Name:                name,
 		Certificate:         x509,
 		private:             private,
 		Store:               store,
@@ -115,7 +133,7 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration)
+	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Name)
 }
 
 // EnforceNamePolicy ensures that requested Common Name and SANs are within configured naming standards policy

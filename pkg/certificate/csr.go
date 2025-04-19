@@ -16,7 +16,7 @@ import (
 
 // TODO - add issuer information
 // Sign takes a CSR, private key, serial number, and TTL duration; produces a signed x.509 certificate
-func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Duration) ([]byte, error) {
+func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Duration, issuer pkix.Name) ([]byte, error) {
 	// parse CSR into template
 	request, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
@@ -28,6 +28,7 @@ func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Durat
 	after := t.Add(duration)
 
 	template := x509.Certificate{
+		Issuer:       issuer,
 		Subject:      request.Subject,
 		DNSNames:     request.DNSNames,
 		NotAfter:     after,

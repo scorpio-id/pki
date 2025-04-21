@@ -65,7 +65,23 @@ func GenerateCSR(sans []string, bits int) ([]byte, error) {
 // Generate creates a CSR with existing rsa key pair
 func GenerateCSRWithPrivateKey(sans []string, private *rsa.PrivateKey) ([]byte, error) {
 	// FIXME generate subject content and add to template
+	// FIXME move content to config! First SAN is taken as CN for now
+	serial := uuid.NewString()
+
+	subject := pkix.Name {
+		Country: []string{"USA"},
+		Province: []string{"Delaware"},
+		Locality: []string{"Lewes"},
+		StreetAddress: []string{"16192 Coastal Highway"},
+		PostalCode: []string{"19958"},
+		Organization: []string{"Ordinary Computing Co."},
+		OrganizationalUnit: []string{"Technology"},
+		CommonName: sans[0],
+		SerialNumber: serial,
+	}
+
 	template := x509.CertificateRequest{
+		Subject: subject,
 		PublicKeyAlgorithm: 1,
 		PublicKey:          &private.PublicKey,
 		DNSNames:           sans,

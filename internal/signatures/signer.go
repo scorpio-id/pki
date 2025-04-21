@@ -358,44 +358,60 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	// csr, err = certificate.InsertKeyCSR(csr, private)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	log.Fatal(err)
-	// }
-
 	cert, err := s.CreateX509(csr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	intermediate := []*x509.Certificate{s.Certificate}
-
 	leaf, err := x509.ParseCertificate(cert)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	pfx, err := pkcs12.Encode(rand.Reader, private, leaf, intermediate, "")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// TODO use this in production!
+	// intermediate := []*x509.Certificate{s.Certificate}
+	// pfx, err := pkcs12.Encode(rand.Reader, private, leaf, intermediate, "")
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// }
+	// w.Write(pfx)
+
+	// create PKCS12 file
+	// private key
+	pkey := pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(private),
 	}
 
-	// returns DER-encoded PKCS12 file
-	// pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	log.Fatal(err)
-	// }
+	err = pem.Encode(w, &pkey)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// TODO - support JSON responses
-	if r.Header.Get("Accept") == "application/json" {
-		// some function to return JSON content for X.509 or PKCS
+	// leaf certificate
+	pkleaf := pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: leaf.Raw,
+	}
+
+	err = pem.Encode(w, &pkleaf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// root certificate
+	pkroot := pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: s.Certificate.Raw,
+	}
+
+	err = pem.Encode(w, &pkroot)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(pfx)
 }
 
 // SPNEGO Handler Swagger Documentation

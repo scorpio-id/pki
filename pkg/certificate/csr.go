@@ -116,6 +116,7 @@ func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duratio
 		Subject:      			name,
 		DNSNames:     			cfg.Root.SANs,
 		IssuingCertificateURL: 	[]string{cfg.Root.CommonName},
+		BasicConstraintsValid:  true,
 		IsCA: 					true,	
 		NotAfter:     			after,
 		NotBefore:    			t,

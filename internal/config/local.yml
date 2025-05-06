@@ -8,14 +8,42 @@ pki:
   rsa_bits: 2048
   serial_number: 1000
   csr_max_memory: 1024
-  certificate_ttl: "60m"
+  certificate_ttl: "8760h"
   certificate_authority: 
-    common_name: "scorpio.io"
+    common_name: "ca.scorpio.ordinarycomputing.com"
   allowed_names:
     - "^$"
-    - ".*\\.scorpio\\.io"
+    - ".*\\.scorpio\\.ordinarycomputing\\.com"
     - ".*\\.example\\.com"
+
+# oauth configuration
 oauth:
   enabled: False
   trusted_issuers:
-    - "http://localhost:8082/jwks"
+    - "http://oauth.scorpio.ordinarycomputing.com:8082/jwks"
+
+# root CA configuration
+root:
+  country: "USA"
+  org: "Ordinary Computing Co."
+  ou: "Technology"
+  locality: "Lewes"
+  province: "Delaware"
+  address: "16192 Coastal Highway"
+  postal: "19958"
+  cn: "ca.scorpio.ordinarycomputing.com"
+  sans:
+    - "ca.scorpio.ordinarycomputing.com"
+  install:
+    path: "/etc/ssl/certs"
+    cert_filename: "scorpio-root.pem"
+    private_filename: "scorpio-private.key"
+
+# SPNEGO configuration
+spnego:
+  service_principal: "HTTP/ca.scorpio.ordinarycomputing.com"
+  password: "move-to-kube-secrets-2222"
+  realm: "KRB.SCORPIO.ORDINARYCOMPUTING.COM"
+  volume: "/scorpio"
+  keytab: "scorpio-pki.keytab"
+  

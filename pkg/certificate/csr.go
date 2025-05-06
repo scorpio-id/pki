@@ -16,7 +16,7 @@ import (
 
 // TODO - add issuer information
 // Sign takes a CSR, private key, serial number, and TTL duration; produces a signed x.509 certificate
-func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Duration) ([]byte, error) {
+func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Duration, parent *x509.Certificate) ([]byte, error) {
 	// parse CSR into template
 	request, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
@@ -28,15 +28,18 @@ func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Durat
 	after := t.Add(duration)
 
 	template := x509.Certificate{
-		Subject:      request.Subject,
-		DNSNames:     request.DNSNames,
-		NotAfter:     after,
-		NotBefore:    t,
-		SerialNumber: big.NewInt(serial),
+		Issuer:                 parent.Subject,
+		Subject:                request.Subject,
+		DNSNames:               request.DNSNames,
+		IsCA:                   false,
+		IssuingCertificateURL: 	[]string{parent.Subject.CommonName},
+		NotAfter:               after,
+		NotBefore:              t,
+		SerialNumber:           big.NewInt(serial),
 	}
 
 	// 'cert' is ASN.1 DER data
-	cert, err := x509.CreateCertificate(rand.Reader, &template, &template, request.PublicKey, private)
+	cert, err := x509.CreateCertificate(rand.Reader, &template, parent, request.PublicKey, private)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +64,24 @@ func GenerateCSR(sans []string, bits int) ([]byte, error) {
 
 // Generate creates a CSR with existing rsa key pair
 func GenerateCSRWithPrivateKey(sans []string, private *rsa.PrivateKey) ([]byte, error) {
+	// FIXME generate subject content and add to template
+	// FIXME move content to config! First SAN is taken as CN for now
+	serial := uuid.NewString()
+
+	subject := pkix.Name {
+		Country: []string{"USA"},
+		Province: []string{"Delaware"},
+		Locality: []string{"Lewes"},
+		StreetAddress: []string{"16192 Coastal Highway"},
+		PostalCode: []string{"19958"},
+		Organization: []string{"Ordinary Computing Co."},
+		OrganizationalUnit: []string{"Technology"},
+		CommonName: sans[0],
+		SerialNumber: serial,
+	}
+
 	template := x509.CertificateRequest{
+		Subject: subject,
 		PublicKeyAlgorithm: 1,
 		PublicKey:          &private.PublicKey,
 		DNSNames:           sans,
@@ -96,6 +116,7 @@ func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duratio
 		Subject:      			name,
 		DNSNames:     			cfg.Root.SANs,
 		IssuingCertificateURL: 	[]string{cfg.Root.CommonName},
+		BasicConstraintsValid:  true,
 		IsCA: 					true,	
 		NotAfter:     			after,
 		NotBefore:    			t,

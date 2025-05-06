@@ -33,9 +33,10 @@ func (store *SubjectAlternateNameStore) Add(s SANs) error {
 	for _, data := range store.Data {
 		for _, san := range data.Names {
 			for _, name := range s.Names {
-				if name == san && name != "" {
-					return fmt.Errorf("subject alternate name [%v] is already in use", san)
-				}
+				// FIXME -- removed uniqueness check for demonstration purposes!
+				// if name == san && name != "" {
+				// 	return fmt.Errorf("subject alternate name [%v] is already in use", san)
+				// }
 
 				// if current SAN contains a wildcard create regex and match
 				if strings.Contains(san, "*") {

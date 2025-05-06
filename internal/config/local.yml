@@ -14,12 +14,13 @@ pki:
   allowed_names:
     - "^$"
     - ".*\\.scorpio\\.ordinarycomputing\\.com"
+    - ".*\\.example\\.com"
 
 # oauth configuration
 oauth:
   enabled: False
   trusted_issuers:
-    - "http://scorpio.ordinarycomputing.com:8082/jwks"
+    - "http://oauth.scorpio.ordinarycomputing.com:8082/jwks"
 
 # root CA configuration
 root:
@@ -37,3 +38,12 @@ root:
     path: "/etc/ssl/certs"
     cert_filename: "scorpio-root.pem"
     private_filename: "scorpio-private.key"
+
+# SPNEGO configuration
+spnego:
+  service_principal: "HTTP/ca.scorpio.ordinarycomputing.com"
+  password: "move-to-kube-secrets-2222"
+  realm: "KRB.SCORPIO.ORDINARYCOMPUTING.COM"
+  volume: "/scorpio"
+  keytab: "scorpio-pki.keytab"
+  

@@ -1,7 +1,6 @@
 package signatures
 
 import (
-	"bufio"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -162,56 +161,6 @@ func (s *Signer) EnforceNamePolicy(csr []byte) error {
 	}
 
 	return err
-}
-
-// SerializeX509 installs certs on the local linux filesystem
-func (s *Signer) SerializeX509() error {
-	// TODO: move filepath to config
-	out, err := os.Create("/etc/ssl/certs/scorpio-root.pem")
-    if err != nil {
-        return err
-    }
-
-	defer out.Close()
-
-	w := bufio.NewWriter(out)
-
-	root := pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: s.Certificate.Raw,
-	}
-
-	// TODO: check to ensure serialized correctly
-	err = pem.Encode(w, &root)
-	if err != nil {
-		return err
-	}
-
-	w.Flush()
-
-	key, err := os.Create("/etc/ssl/certs/scorpio-private.key")
-    if err != nil {
-        return err
-    }
-
-	defer key.Close()
-
-	w = bufio.NewWriter(key)
-
-	private := pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(s.private), 
-	}
-
-	// TODO: check to ensure serialized correctly
-	err = pem.Encode(w, &private)
-	if err != nil {
-		return err
-	}
-
-	w.Flush()
-
-	return nil
 }
 
 func (s *Signer) GenerateKeytab(cfg config.Config) error {

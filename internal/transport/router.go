@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +16,7 @@ import (
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/signatures"
+	"github.com/scorpio-id/pki/pkg/certificate"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -48,8 +51,23 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 	// only install certificates locally if target OS is linux
 	if runtime.GOOS == "linux" {
+		private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
+		if err != nil {
+			log.Fatal(err)
+		}
+	
+		csr, err := certificate.GenerateDomainClientCSR(cfg, private)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		webCert, err := signer.CreateX509(csr)
+		if err != nil {
+			log.Fatal(err)
+		}				
+
 		// install certificates
-		err := signer.SerializeX509()
+		err = SerializeX509(private, webCert)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -82,3 +100,4 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 	return router, nil
 }
+

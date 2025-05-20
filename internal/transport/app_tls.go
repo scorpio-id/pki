@@ -2,32 +2,11 @@ package transport
 
 import (
 	"bufio"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"log"
 	"os"
-
-	"github.com/scorpio-id/pki/internal/config"
-	"github.com/scorpio-id/pki/pkg/certificate"
 )
-
-// Creates Key Pair and CSR for Scorpio Web Client to establish TLS 
-func CreateWebServerCSR(cfg config.Config) (*rsa.PrivateKey, []byte,  error) {
-	// Creates a RSA public/private key pair for web server
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	csr, err := certificate.GenerateDomainClientCSR(cfg, private)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return private, csr, nil
-}
 
 
 // SerializeX509 installs certs on the local linux filesystem

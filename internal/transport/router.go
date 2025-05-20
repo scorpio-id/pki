@@ -49,7 +49,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 		router.Use(om.Middleware)
 	}
 
-	// only install certificates locally if target OS is linux
+	// install CA certificates locally if target OS is linux
 	if runtime.GOOS == "linux" {
 		private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
 		if err != nil {

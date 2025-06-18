@@ -26,6 +26,8 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
+const suggestedFilename = "ca-public.cer"
+
 // Signer generates an RSA public, private key pair and signs X.509 certificates
 type Signer struct {
 	RSABits             int
@@ -318,14 +320,6 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	// TODO use this in production!
-	// intermediate := []*x509.Certificate{s.Certificate}
-	// pfx, err := pkcs12.Encode(rand.Reader, private, leaf, intermediate, "")
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// }
-	// w.Write(pfx)
-
 	// create PKCS12 file
 	// private key
 	pkey := pem.Block{
@@ -407,12 +401,6 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	// csr, err = certificate.InsertKeyCSR(csr, private)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	log.Fatal(err)
-	// }
-
 	cert, err := s.CreateX509(csr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -430,13 +418,6 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
-	// returns DER-encoded PKCS12 file
-	// pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	log.Fatal(err)
-	// }
 
 	// TODO - support JSON responses
 	if r.Header.Get("Accept") == "application/json" {
@@ -456,9 +437,10 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 // 
 // PublicHandler returns the public X.509 of the certificate authority
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
+
 	// TODO - return JSON (JWKS?) representation
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"scorpio.cer\"")
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+suggestedFilename+"\"")
 
 	root := pem.Block{
 		Type:  "CERTIFICATE",

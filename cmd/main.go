@@ -23,7 +23,7 @@ import (
 //	@license.name	MIT
 //	@license.url	https://mit-license.org
 
-//	@BasePath		/
+// @BasePath		/
 func main() {
 	// parse local config (could be added as cmd line arg)
 	cfg := config.NewConfig("internal/config/local.yml")
@@ -32,14 +32,20 @@ func main() {
 	docs.SwaggerInfo.Host = cfg.Server.Host + ":" + cfg.Server.Port
 
 	// create a new mux router
-	router := transport.NewRouter(cfg)
+	router, httpRouter := transport.NewRouters(cfg)
 
-	if runtime.GOOS == "linux"{
+	if runtime.GOOS == "linux" {
 		certFilePath := cfg.Root.Install.Path + "/" + cfg.Root.Install.CertFilename
 		privateKeyFilePath := cfg.Root.Install.Path + "/" + cfg.Root.Install.PrivateKeyFilename
 
 		// start the server with TLS
-		log.Fatal(http.ListenAndServeTLS(":"+cfg.Server.Port, certFilePath, privateKeyFilePath, router))
+		go func (){
+			log.Fatal(http.ListenAndServeTLS(":"+cfg.Server.Port, certFilePath, privateKeyFilePath, router))
+		}()
+
+		log.Fatal(http.ListenAndServe(":80", httpRouter))
+
+		
 	} else {
 		log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, router))
 	}

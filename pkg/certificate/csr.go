@@ -91,6 +91,35 @@ func GenerateCSRWithPrivateKey(sans []string, private *rsa.PrivateKey) ([]byte, 
 }
 
 
+// Generate a CSR specific to the Scorpio Web Server Client
+func GenerateDomainClientCSR(cfg config.Config, private *rsa.PrivateKey) ([]byte, error) {
+	serial := uuid.NewString()
+
+	name := pkix.Name{
+		Country: []string{cfg.Root.Country},
+		Organization: []string{cfg.Root.Organization},
+		OrganizationalUnit: []string{cfg.Root.OrganizationalUnit},
+		Locality: []string{cfg.Root.Locality},
+		Province: []string{cfg.Root.Province},
+		StreetAddress: []string{cfg.Root.StreetAddress},
+		PostalCode: []string{cfg.Root.PostalCode},
+		SerialNumber: serial,
+		CommonName: cfg.Root.CommonName,
+	}
+	
+	// using config root sans
+	template := x509.CertificateRequest{
+		Subject: name,
+		PublicKeyAlgorithm: 1,
+		PublicKey:          &private.PublicKey,
+		DNSNames:     		cfg.Root.SANs,
+	}
+
+	return x509.CreateCertificateRequest(rand.Reader, &template, private)
+}
+
+
+
 func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duration time.Duration) ([]byte, error){
 	// compute TTL
 	t := time.Now()

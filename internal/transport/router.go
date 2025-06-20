@@ -22,8 +22,6 @@ import (
 
 // NewRouters creates a new mux router with applied server
 func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
-
-	// FIXME: break into subroutes
 	router := mux.NewRouter()
 
 	signer := signatures.NewSigner(cfg)
@@ -88,7 +86,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 			log.Fatal(err)
 		}
 
-		// TODO : get keytab file from Kerberos
+		// TODO convert to structured JSON logs
 		l := log.New(os.Stderr, "PKI SPNEGO: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 		h := spnego.SPNEGOKRB5Authenticate(http.HandlerFunc(signer.SPNEGOHandler), kt, service.Logger(l), service.DecodePAC(false))

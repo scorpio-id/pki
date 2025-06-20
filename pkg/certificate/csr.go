@@ -14,7 +14,6 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 )
 
-// TODO - add issuer information
 // Sign takes a CSR, private key, serial number, and TTL duration; produces a signed x.509 certificate
 func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Duration, parent *x509.Certificate) ([]byte, error) {
 	// parse CSR into template

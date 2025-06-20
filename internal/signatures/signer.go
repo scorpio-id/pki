@@ -303,7 +303,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	csr, err := certificate.GenerateCSRWithPrivateKey(sans, private)
+	csr, err := certificate.GenerateCSRWithPrivateKey(s.Name, sans, private)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
@@ -395,7 +395,7 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	csr, err := certificate.GenerateCSRWithPrivateKey(sans, private)
+	csr, err := certificate.GenerateCSRWithPrivateKey(s.Name, sans, private)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)

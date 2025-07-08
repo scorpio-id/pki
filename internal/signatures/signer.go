@@ -38,7 +38,7 @@ type Signer struct {
 	Name                pkix.Name
 	Certificate         *x509.Certificate
 	private             *rsa.PrivateKey
-	Store               *data.SubjectAlternateNameStore
+	Store               *data.CertificateStore
 }
 
 func NewSigner(cfg config.Config) *Signer {
@@ -60,18 +60,21 @@ func NewSigner(cfg config.Config) *Signer {
 
 	// create store and add own name to store
 	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
-	store := data.NewSubjectAlternateNameStore()
+	store := data.NewCertificateStore()
+
+	// add root certificate to store
+	store.AddX509Metadata(cert)
 
 	// FIXME - consolidate config, move pki section to root section
-	ca := data.SANs{
-		SerialNumber: cfg.PKI.SerialNumber,
-		Names:        []string{cfg.PKI.CertificateAuthority.CommonName},
-	}
+	// ca := data.SANs{
+	// 	SerialNumber: cfg.PKI.SerialNumber,
+	// 	Names:        []string{cfg.PKI.CertificateAuthority.CommonName},
+	// }
 
-	err = store.Add(ca)
-	if err != nil {
-		log.Fatalf("issue adding [%v] to blank SAN store", err)
-	}
+	// err = store.Add(ca)
+	// if err != nil {
+	// 	log.Fatalf("issue adding [%v] to blank SAN store", err)
+	// }
 
 	x509, err := x509.ParseCertificate(cert)
 	if err != nil {
@@ -113,28 +116,31 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	content, err := x509.ParseCertificateRequest(csr)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// content, err := x509.ParseCertificateRequest(csr)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// increment serial number
 	s.CurrentSerialNumber += 1
 
-	// the SAN store enforces all names be unique; add requested Common Name to requested SANs
-	names := append(content.DNSNames, content.Subject.CommonName)
+	// // the SAN store enforces all names be unique; add requested Common Name to requested SANs
+	// names := append(content.DNSNames, content.Subject.CommonName)
 
-	san := data.SANs{
-		SerialNumber: s.CurrentSerialNumber,
-		Names:        names,
-	}
+	// err = s.Store.Add(san)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	err = s.Store.Add(san)
+	signed, err := certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Certificate)
 	if err != nil {
 		return nil, err
 	}
 
-	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Certificate)
+	// add metadata to certificate store
+	s.Store.AddX509Metadata(signed)
+
+	return signed, nil
 }
 
 // EnforceNamePolicy ensures that requested Common Name and SANs are within configured naming standards policy

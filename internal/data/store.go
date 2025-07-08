@@ -1,0 +1,192 @@
+package data
+
+import (
+	"crypto/rsa"
+	"crypto/x509"
+	"fmt"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
+	"software.sslmate.com/src/go-pkcs12"
+)
+
+// new certificate metadata store implementation
+type CertificateStore struct {
+	Data    []CertificateMetadata
+	Revoked []CertificateMetadata
+	mu      sync.Mutex
+}
+
+type CertificateMetadata struct {
+	CommonName             string         `json:"common_name"`
+	SubjectAlternateNames  []string       `json:"subject_alternate_names"`
+	SerialNumber           int64          `json:"serial_number"`
+	PublicKey              *rsa.PublicKey `json:"public_key"`
+	IssuedDate             time.Time      `json:"issued"`
+	ExpirationDate         time.Time      `json:"expires"`
+	IsCertificateAuthority bool           `json:"is_certificate_authority"`
+}
+
+func NewCertificateStore() *CertificateStore {
+	return &CertificateStore{
+		Data:    make([]CertificateMetadata, 0),
+		Revoked: make([]CertificateMetadata, 0),
+	}
+}
+
+func (store *CertificateStore) AddX509Metadata(der []byte) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	// convert DER content into a *x509.Certificate
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		return err
+	}
+
+	// convert public key interface into a *rsa.PublicKey
+	public, ok := cert.PublicKey.(*rsa.PublicKey)
+	if !ok {
+		return fmt.Errorf("unable to convert RSA public key from interface")
+	}
+
+	// TODO - check if issued and expiration dates are correctly formatted
+	metadata := CertificateMetadata {
+		CommonName: cert.Subject.CommonName,
+		SubjectAlternateNames: cert.DNSNames,
+		SerialNumber: cert.SerialNumber.Int64(),
+		PublicKey: public,
+		IssuedDate: cert.NotBefore,
+		ExpirationDate: cert.NotAfter,
+		IsCertificateAuthority: cert.IsCA,
+	}
+
+	store.Data = append(store.Data, metadata)
+
+	return nil
+}
+
+func (store *CertificateStore) AddPKCS12Metadata(der []byte) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	// convert PKCS DER content into *x509.Certificate -- leaf only!
+	_, cert, _, err := pkcs12.DecodeChain(der, "")
+	if err != nil {
+		return err
+	}
+
+	// convert public key interface into a *rsa.PublicKey
+	public, ok := cert.PublicKey.(*rsa.PublicKey)
+	if !ok {
+		return fmt.Errorf("unable to convert RSA public key from interface")
+	}
+
+	// TODO - check if issued and expiration dates are correctly formatted
+	metadata := CertificateMetadata {
+		CommonName: cert.Subject.CommonName,
+		SubjectAlternateNames: cert.DNSNames,
+		SerialNumber: cert.SerialNumber.Int64(),
+		PublicKey: public,
+		IssuedDate: cert.NotBefore,
+		ExpirationDate: cert.NotAfter,
+		IsCertificateAuthority: cert.IsCA,
+	}
+
+	store.Data = append(store.Data, metadata)
+
+	return nil
+}
+
+// TODO implement
+func (store *CertificateStore) Revoke(sans []string) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	return nil
+}
+
+// original SAN store implementation
+type SANs struct {
+	SerialNumber int64
+	Names        []string
+}
+
+type SubjectAlternateNameStore struct {
+	Data []SANs
+	mu   sync.Mutex
+}
+
+func NewSubjectAlternateNameStore() *SubjectAlternateNameStore {
+	return &SubjectAlternateNameStore{
+		Data: make([]SANs, 0),
+	}
+}
+
+func (store *SubjectAlternateNameStore) Add(s SANs) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	// ensure SAN is free
+	for _, data := range store.Data {
+		for _, san := range data.Names {
+			for _, name := range s.Names {
+				// uniqueness check
+				if name == san && name != "" {
+					return fmt.Errorf("subject alternate name [%v] is already in use", san)
+				}
+
+				// if current SAN contains a wildcard create regex and match
+				if strings.Contains(san, "*") {
+					// ex: *.test.com must become regex .*.test.com
+					match, err := regexp.MatchString("."+san, name)
+					if err != nil {
+						return err
+					}
+
+					if match {
+						return fmt.Errorf("subject alternate name [%v] is already in use by [%v]", name, san)
+					}
+				}
+
+				// checks if an existing issued certificate has a SAN under the desired wildcard SAN
+				if strings.Contains(name, "*") {
+					// ex: *.test.com must become regex .*.test.com
+					match, err := regexp.MatchString("."+name, san)
+					if err != nil {
+						return err
+					}
+
+					if match {
+						return fmt.Errorf("subject alternate name [%v] is already in use by [%v]", name, san)
+					}
+				}
+			}
+		}
+	}
+
+	// ensure serial number unique
+	for _, san := range store.Data {
+		if san.SerialNumber == s.SerialNumber {
+			return fmt.Errorf("serial number [%v] is not unique", s.SerialNumber)
+		}
+	}
+
+	store.Data = append(store.Data, s)
+	return nil
+}
+
+func (store *SubjectAlternateNameStore) Delete(san string) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	for x, v := range store.Data {
+		for _, j := range v.Names {
+			if san == j {
+				store.Data = append(store.Data[:x], store.Data[x+1:]...)
+			}
+		}
+	}
+}

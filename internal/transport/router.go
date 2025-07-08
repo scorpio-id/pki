@@ -37,6 +37,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 	router.HandleFunc("/certificate", signer.CSRHandler).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/p12", signer.PKCSHandler).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/public", signer.PublicHandler).Methods(http.MethodGet, http.MethodOptions)
+	router.HandleFunc("/metadata", signer.CertificateStoreHandler).Methods(http.MethodGet, http.MethodOptions)
 
 	// apply OAuth middleware if enabled
 	if cfg.OAuth.Enabled {

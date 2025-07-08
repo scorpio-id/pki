@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"time"
 
+	"encoding/json"
 	"encoding/pem"
 
 	"github.com/google/uuid"
@@ -432,6 +433,28 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Write(pfx)
+}
+
+// Certificate Store Metadata Handler Swagger Documentation
+//
+//	@Summary	Provides a JSON description of all issued, active, and revoked certificates
+//	@Tags		Certificates
+//	@Success	200	{JSON}
+//	@Router		/metadata [get]
+// 
+// CertificateStoreHandler returns a JSON description of all issued, active, and revoked certificates
+func (s *Signer) CertificateStoreHandler(w http.ResponseWriter, r *http.Request) {
+
+	// TODO - return JSON (JWKS?) representation
+	w.Header().Set("Content-Type", "application/json")
+
+	content, err := json.Marshal(s.Store)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	w.Write(content)
 }
 
 // Public X.509 Handler Swagger Documentation

@@ -14,8 +14,8 @@ import (
 
 // new certificate metadata store implementation
 type CertificateStore struct {
-	Data    []CertificateMetadata
-	Revoked []CertificateMetadata
+	Data    []CertificateMetadata `json:"certificate_data"`
+	Revoked []CertificateMetadata `json:"revoked"`
 	mu      sync.Mutex
 }
 

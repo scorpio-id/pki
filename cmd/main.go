@@ -34,8 +34,6 @@ func main() {
 	// create a new mux router
 	router, httpRouter := transport.NewRouters(cfg)
 
-	log.Default().Print("starting pki ...")
-
 	if runtime.GOOS == "linux" {
 		certFilePath := cfg.Root.Install.Path + "/" + cfg.Root.Install.CertFilename
 		privateKeyFilePath := cfg.Root.Install.Path + "/" + cfg.Root.Install.PrivateKeyFilename

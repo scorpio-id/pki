@@ -382,6 +382,8 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Default().Print("received authenticated SPNEGO request ...")
+
 	// generate new RSA identity for PKCS12
 	private, err := rsa.GenerateKey(rand.Reader, s.RSABits)
 	if err != nil {
@@ -390,6 +392,7 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 
 	values := r.URL.Query()
 	if values == nil {
+		w.Write([]byte("query values empty"))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -410,6 +413,7 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 
 	cert, err := s.CreateX509(csr)
 	if err != nil {
+		log.Default().Print("cert error: " + err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

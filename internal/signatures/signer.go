@@ -414,7 +414,7 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 	cert, err := s.CreateX509(csr)
 	if err != nil {
 		log.Default().Print("cert error: " + err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

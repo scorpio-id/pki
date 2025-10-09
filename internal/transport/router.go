@@ -37,7 +37,6 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 	router.HandleFunc("/certificate", signer.CSRHandler).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/p12", signer.PKCSHandler).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/public", signer.PublicHandler).Methods(http.MethodGet, http.MethodOptions)
-	router.HandleFunc("/metadata", signer.CertificateStoreHandler).Methods(http.MethodGet, http.MethodOptions)
 
 	// apply OAuth middleware if enabled
 	if cfg.OAuth.Enabled {
@@ -93,6 +92,17 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 		h := spnego.SPNEGOKRB5Authenticate(http.HandlerFunc(signer.SPNEGOHandler), kt, service.Logger(l), service.DecodePAC(false))
 
 		httpRouter.HandleFunc("/spnego", h.ServeHTTP).Methods(http.MethodPost, http.MethodOptions).Schemes("http")
+
+		// FIXME move to outside so no need to duplicate for router
+
+		// create subrouter for CORS-enabled UIs
+		subr := router.PathPrefix("/ui").Subrouter()
+
+		// metadata endpoint for console UI
+		subr.HandleFunc("/metadata", signer.CertificateStoreHandler).Methods(http.MethodGet, http.MethodOptions)
+
+		// enable CORS 
+		subr.Use(mux.CORSMethodMiddleware(subr))
 
 		return router, httpRouter
 	}

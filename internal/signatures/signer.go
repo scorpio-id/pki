@@ -446,6 +446,14 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 // CertificateStoreHandler returns a JSON description of all issued, active, and revoked certificates
 func (s *Signer) CertificateStoreHandler(w http.ResponseWriter, r *http.Request) {
 
+	// FIXME move CORS URLs to config
+	// check CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+        return
+    }
+
 	// TODO - return JSON (JWKS?) representation
 	w.Header().Set("Content-Type", "application/json")
 

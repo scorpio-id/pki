@@ -93,10 +93,11 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 		httpRouter.HandleFunc("/spnego", h.ServeHTTP).Methods(http.MethodPost, http.MethodOptions).Schemes("http")
 
-		// FIXME move to outside so no need to duplicate for router
-
 		// create subrouter for CORS-enabled UIs
 		subr := router.PathPrefix("/ui").Subrouter()
+
+		// config endpoint for console
+		subr.HandleFunc("/config", cfg.ConfigHandler).Methods(http.MethodGet, http.MethodOptions)
 
 		// metadata endpoint for console UI
 		subr.HandleFunc("/metadata", signer.CertificateStoreHandler).Methods(http.MethodGet, http.MethodOptions)

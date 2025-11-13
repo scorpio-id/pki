@@ -121,10 +121,8 @@ func (store *CertificateStore) Revoke(sans []string) error {
 }
 
 func (store *CertificateStore) CheckSANsUnique(names []string) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-
-	// ensure SAN is free
+	
+	// ensure SAN is free.
 	for _, data := range store.Data {
 		for _, san := range data.SubjectAlternateNames {
 			for _, name := range names {

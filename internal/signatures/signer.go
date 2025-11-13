@@ -117,29 +117,19 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// content, err := x509.ParseCertificateRequest(csr)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	// increment serial number
 	s.CurrentSerialNumber += 1
-
-	// // the SAN store enforces all names be unique; add requested Common Name to requested SANs
-	// names := append(content.DNSNames, content.Subject.CommonName)
-
-	// err = s.Store.Add(san)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	signed, err := certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Certificate)
 	if err != nil {
 		return nil, err
 	}
 
-	// add metadata to certificate store
-	s.Store.AddX509Metadata(signed)
+	// add metadata to certificate store, enforce SAN unique
+	err = s.Store.AddX509Metadata(signed)
+	if err != nil {
+		return nil, err
+	}
 
 	return signed, nil
 }

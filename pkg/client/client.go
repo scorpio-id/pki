@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"crypto/rsa"
+	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
 	"io"
@@ -56,9 +57,9 @@ func (xclient *X509Client) AuthenticateCredentials(issuerURL, clientID string) (
 }
 
 // GetCertificate generates a signed x509 certificate given SANs and an OAuth JWT
-func (xclient *X509Client) GetCertificate(sans []string, jwt string) (string, error) {
+func (xclient *X509Client) GetCertificate(info pkix.Name, sans []string, jwt string) (string, error) {
 	// generate CSR
-	csr, err := certificate.GenerateCSRWithPrivateKey(sans, xclient.private)
+	csr, err := certificate.GenerateCSRWithPrivateKey(info, sans, xclient.private)
 	if err != nil {
 		return "", err
 	}

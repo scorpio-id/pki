@@ -14,7 +14,6 @@ import (
 	"github.com/scorpio-id/pki/internal/config"
 )
 
-// TODO - add issuer information
 // Sign takes a CSR, private key, serial number, and TTL duration; produces a signed x.509 certificate
 func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Duration, parent *x509.Certificate) ([]byte, error) {
 	// parse CSR into template
@@ -63,19 +62,18 @@ func GenerateCSR(sans []string, bits int) ([]byte, error) {
 }
 
 // Generate creates a CSR with existing rsa key pair
-func GenerateCSRWithPrivateKey(sans []string, private *rsa.PrivateKey) ([]byte, error) {
-	// FIXME generate subject content and add to template
+func GenerateCSRWithPrivateKey(info pkix.Name, sans []string, private *rsa.PrivateKey) ([]byte, error) {
 	// FIXME move content to config! First SAN is taken as CN for now
 	serial := uuid.NewString()
 
 	subject := pkix.Name {
-		Country: []string{"USA"},
-		Province: []string{"Delaware"},
-		Locality: []string{"Lewes"},
-		StreetAddress: []string{"16192 Coastal Highway"},
-		PostalCode: []string{"19958"},
-		Organization: []string{"Ordinary Computing Co."},
-		OrganizationalUnit: []string{"Technology"},
+		Country: info.Country,
+		Province: info.Province,
+		Locality: info.Locality,
+		StreetAddress: info.StreetAddress,
+		PostalCode: info.PostalCode,
+		Organization: info.Organization,
+		OrganizationalUnit: info.OrganizationalUnit,
 		CommonName: sans[0],
 		SerialNumber: serial,
 	}
@@ -143,7 +141,6 @@ func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duratio
 	template := x509.Certificate{
 		Issuer: 	  			name,	
 		Subject:      			name,
-		DNSNames:     			cfg.Root.SANs,
 		IssuingCertificateURL: 	[]string{cfg.Root.CommonName},
 		BasicConstraintsValid:  true,
 		IsCA: 					true,	

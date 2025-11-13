@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509/pkix"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -79,8 +80,10 @@ func TestX509ClientWithCredentials(t *testing.T) {
 	
 	sans := []string{"myapp.example.com"}
 
+	info := pkix.Name{}
+
 	// cert is ignored element here
-	_, err = xclient.GetCertificate(sans, jwt)
+	_, err = xclient.GetCertificate(info, sans, jwt)
 	if err != nil {
 		log.Fatal(err)
 	}

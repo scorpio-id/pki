@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"time"
 
+	"encoding/json"
 	"encoding/pem"
 
 	"github.com/google/uuid"
@@ -26,6 +27,8 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
+const suggestedFilename = "ca-public.cer"
+
 // Signer generates an RSA public, private key pair and signs X.509 certificates
 type Signer struct {
 	RSABits             int
@@ -36,7 +39,7 @@ type Signer struct {
 	Name                pkix.Name
 	Certificate         *x509.Certificate
 	private             *rsa.PrivateKey
-	Store               *data.SubjectAlternateNameStore
+	Store               *data.CertificateStore
 }
 
 func NewSigner(cfg config.Config) *Signer {
@@ -58,18 +61,21 @@ func NewSigner(cfg config.Config) *Signer {
 
 	// create store and add own name to store
 	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
-	store := data.NewSubjectAlternateNameStore()
+	store := data.NewCertificateStore()
+
+	// add root certificate to store
+	store.AddX509Metadata(cert)
 
 	// FIXME - consolidate config, move pki section to root section
-	ca := data.SANs{
-		SerialNumber: cfg.PKI.SerialNumber,
-		Names:        []string{cfg.PKI.CertificateAuthority.CommonName},
-	}
+	// ca := data.SANs{
+	// 	SerialNumber: cfg.PKI.SerialNumber,
+	// 	Names:        []string{cfg.PKI.CertificateAuthority.CommonName},
+	// }
 
-	err = store.Add(ca)
-	if err != nil {
-		log.Fatalf("issue adding [%v] to blank SAN store", err)
-	}
+	// err = store.Add(ca)
+	// if err != nil {
+	// 	log.Fatalf("issue adding [%v] to blank SAN store", err)
+	// }
 
 	x509, err := x509.ParseCertificate(cert)
 	if err != nil {
@@ -111,28 +117,21 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	content, err := x509.ParseCertificateRequest(csr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// increment serial number
 	s.CurrentSerialNumber += 1
 
-	// the SAN store enforces all names be unique; add requested Common Name to requested SANs
-	names := append(content.DNSNames, content.Subject.CommonName)
-
-	san := data.SANs{
-		SerialNumber: s.CurrentSerialNumber,
-		Names:        names,
-	}
-
-	err = s.Store.Add(san)
+	signed, err := certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Certificate)
 	if err != nil {
 		return nil, err
 	}
 
-	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Certificate)
+	// add metadata to certificate store, enforce SAN unique
+	err = s.Store.AddX509Metadata(signed)
+	if err != nil {
+		return nil, err
+	}
+
+	return signed, nil
 }
 
 // EnforceNamePolicy ensures that requested Common Name and SANs are within configured naming standards policy
@@ -301,7 +300,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	csr, err := certificate.GenerateCSRWithPrivateKey(sans, private)
+	csr, err := certificate.GenerateCSRWithPrivateKey(s.Name, sans, private)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
@@ -317,14 +316,6 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
-	// TODO use this in production!
-	// intermediate := []*x509.Certificate{s.Certificate}
-	// pfx, err := pkcs12.Encode(rand.Reader, private, leaf, intermediate, "")
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// }
-	// w.Write(pfx)
 
 	// create PKCS12 file
 	// private key
@@ -389,6 +380,7 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 
 	values := r.URL.Query()
 	if values == nil {
+		w.Write([]byte("query values empty"))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -401,21 +393,15 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	csr, err := certificate.GenerateCSRWithPrivateKey(sans, private)
+	csr, err := certificate.GenerateCSRWithPrivateKey(s.Name, sans, private)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
-	// csr, err = certificate.InsertKeyCSR(csr, private)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	log.Fatal(err)
-	// }
-
 	cert, err := s.CreateX509(csr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -431,13 +417,6 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	// returns DER-encoded PKCS12 file
-	// pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	log.Fatal(err)
-	// }
-
 	// TODO - support JSON responses
 	if r.Header.Get("Accept") == "application/json" {
 		// some function to return JSON content for X.509 or PKCS
@@ -445,6 +424,36 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Write(pfx)
+}
+
+// Certificate Store Metadata Handler Swagger Documentation
+//
+//	@Summary	Provides a JSON description of all issued, active, and revoked certificates
+//	@Tags		Certificates
+//	@Success	200	{JSON}
+//	@Router		/metadata [get]
+// 
+// CertificateStoreHandler returns a JSON description of all issued, active, and revoked certificates
+func (s *Signer) CertificateStoreHandler(w http.ResponseWriter, r *http.Request) {
+
+	// FIXME move CORS URLs to config
+	// check CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+        return
+    }
+
+	// TODO - return JSON (JWKS?) representation
+	w.Header().Set("Content-Type", "application/json")
+
+	content, err := json.Marshal(s.Store)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	w.Write(content)
 }
 
 // Public X.509 Handler Swagger Documentation
@@ -456,9 +465,10 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 // 
 // PublicHandler returns the public X.509 of the certificate authority
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
+
 	// TODO - return JSON (JWKS?) representation
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"scorpio.cer\"")
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+suggestedFilename+"\"")
 
 	root := pem.Block{
 		Type:  "CERTIFICATE",

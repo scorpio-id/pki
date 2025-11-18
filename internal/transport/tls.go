@@ -34,6 +34,7 @@ func SerializeX509(private *rsa.PrivateKey, webCert []byte) error {
 
 	w.Flush()
 
+	// TODO: add to config
 	key, err := os.Create("/etc/ssl/certs/scorpio-private.key")
     if err != nil {
         return err

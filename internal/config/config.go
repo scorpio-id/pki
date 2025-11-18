@@ -17,6 +17,12 @@ type Config struct {
 		Port string `yaml:"port" json:"port"`
 		Host string `yaml:"host" json:"host"`
 	} `yaml:"server" json:"server"`
+	Persistence struct {
+		Port     string `yaml:"port" json:"port"`
+		Host     string `yaml:"host" json:"host"`
+		Password string `yaml:"password" json:"password"`
+		Database int    `yaml:"database" json:"database"`
+	} `yaml:"persistence" json:"persistence"`
 	PKI struct {
 		RSABits              int      `yaml:"rsa_bits" json:"rsa_bits"`
 		CSRMaxMemory         int      `yaml:"csr_max_memory" json:"csr_max_memory"`

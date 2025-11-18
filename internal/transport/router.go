@@ -15,6 +15,7 @@ import (
 	"github.com/jcmturner/gokrb5/v8/spnego"
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
+	"github.com/scorpio-id/pki/internal/data"
 	"github.com/scorpio-id/pki/internal/signatures"
 	"github.com/scorpio-id/pki/pkg/certificate"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -25,6 +26,9 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 	router := mux.NewRouter()
 
 	signer := signatures.NewSigner(cfg)
+
+	// create redis client
+	data.NewPersistenceClient(cfg)
 
 	// adding swagger endpoint
 	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(

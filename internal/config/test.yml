@@ -2,6 +2,13 @@
 server:
   host: "http://127.0.0.1"
   port: 8081
+
+persistence:
+  host: "localhost"
+  port: 6379
+  password: "move-to-kube-secrets"
+  database: 0
+
 # pki configuration
 pki:
   rsa_bits: 2048

@@ -25,10 +25,21 @@ import (
 func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 	router := mux.NewRouter()
 
+	// TODO check if persistence is enabled and populate signer with existing RSA key pair if so
 	signer := signatures.NewSigner(cfg)
 
 	// create redis client
-	data.NewPersistenceClient(cfg)
+	persist := data.NewPersistenceClient(cfg)
+	err := persist.SetRSAKeyPair(signer.Private)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// TODO use retrieved RSA key pair to populate signed when persistence is enabled
+	_, err = persist.GetRSAKeyPair()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// adding swagger endpoint
 	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(

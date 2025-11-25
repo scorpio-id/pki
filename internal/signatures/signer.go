@@ -38,7 +38,7 @@ type Signer struct {
 	Duration            time.Duration
 	Name                pkix.Name
 	Certificate         *x509.Certificate
-	private             *rsa.PrivateKey
+	Private             *rsa.PrivateKey
 	Store               *data.CertificateStore
 }
 
@@ -104,7 +104,7 @@ func NewSigner(cfg config.Config) *Signer {
 		Duration:            duration,
 		Name:                name,
 		Certificate:         x509,
-		private:             private,
+		Private:             private,
 		Store:               store,
 	}
 }
@@ -120,7 +120,7 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	// increment serial number
 	s.CurrentSerialNumber += 1
 
-	signed, err := certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Certificate)
+	signed, err := certificate.Sign(csr, s.Private, s.CurrentSerialNumber, s.Duration, s.Certificate)
 	if err != nil {
 		return nil, err
 	}

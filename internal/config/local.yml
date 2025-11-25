@@ -4,6 +4,7 @@ server:
   port: 8081
 
 persistence:
+  enabled: true
   host: "localhost"
   port: 6379
   password: "move-to-kube-secrets"

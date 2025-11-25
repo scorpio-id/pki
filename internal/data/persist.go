@@ -2,6 +2,11 @@ package data
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"fmt"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/scorpio-id/pki/internal/config"
@@ -21,10 +26,7 @@ func NewPersistenceClient(cfg config.Config) Persistence {
         DB:       cfg.Persistence.Database,
     })
 
-	return Persistence {
-		Client: rdb,
-		Context: context.Background(),
-	}
+    // ctx := context.Background()
 
     // err := rdb.Set(ctx, "key", "value", 0).Err()
     // if err != nil {
@@ -47,4 +49,49 @@ func NewPersistenceClient(cfg config.Config) Persistence {
     // }
     // Output: key value
     // key2 does not exist
+
+    return Persistence {
+		Client:  rdb,
+		Context: context.Background(),
+	}
+}
+
+func (persist *Persistence) SetRSAKeyPair(private *rsa.PrivateKey) error {
+    // convert RSA key pair into a PEM-encoded string
+    bytes := x509.MarshalPKCS1PrivateKey(private)
+    block := pem.EncodeToMemory(
+                &pem.Block{
+                    Type:  "RSA PRIVATE KEY",
+                    Bytes: bytes,
+                },
+            )
+  
+    // store RSA key value pair
+    err := persist.Client.Set(persist.Context, "rsa", string(block), 0).Err()
+    if err != nil {
+        fmt.Println(err.Error())
+        return err
+    }
+    
+    return nil
+}
+
+func (persist *Persistence) GetRSAKeyPair() (*rsa.PrivateKey, error) {
+    result, err := persist.Client.Get(persist.Context, "rsa").Result()
+    if err != nil {
+        return nil, err
+    }
+
+    // convert PEM-encoded string back into *rsa.PrivateKey interface
+    block, _ := pem.Decode([]byte(result))
+    if block == nil {
+            return nil, errors.New("failed to parse PEM block containing the key")
+    }
+
+    private, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+    if err != nil {
+        return nil, err
+    }
+    
+    return private, nil
 }

@@ -180,3 +180,9 @@ This project was made to make integrating a Certificate Authority in Go much, mu
 
 ### Useful Links
 [X.509 Encodings and Conversions](https://www.ssl.com/guide/pem-der-crt-and-cer-x-509-encodings-and-conversions/) - Information on encoding PEM, DER, CRT, and CER 
+
+### Running Locally
+For persistence testing, start the Docker engine and execute the following command to start a local Redis container:
+```
+docker run -d --name redis -p 6379:6379 redis:8
+```

@@ -18,6 +18,7 @@ type Config struct {
 		Host string `yaml:"host" json:"host"`
 	} `yaml:"server" json:"server"`
 	Persistence struct {
+		Enabled  bool   `yaml:"enabled" json:"enabled"`
 		Port     string `yaml:"port" json:"port"`
 		Host     string `yaml:"host" json:"host"`
 		Password string `yaml:"password" json:"password"`

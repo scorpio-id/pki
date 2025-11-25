@@ -19,6 +19,7 @@ type CertificateStore struct {
 	mu      sync.Mutex
 }
 
+// TODO apply Redis struct tags: https://redis.io/docs/latest/develop/clients/go/#connect
 type CertificateMetadata struct {
 	CommonName             string         `json:"common_name"`
 	SubjectAlternateNames  []string       `json:"subject_alternate_names"`

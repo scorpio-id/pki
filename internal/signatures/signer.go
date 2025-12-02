@@ -42,13 +42,7 @@ type Signer struct {
 	Store               *data.CertificateStore
 }
 
-func NewSigner(cfg config.Config) *Signer {
-	// start by creating a RSA public/private key pair
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func NewSigner(cfg config.Config, private *rsa.PrivateKey) *Signer {
 	duration, err := time.ParseDuration(cfg.PKI.CertificateTTL)
 	if err != nil {
 		log.Fatal(err)
@@ -177,7 +171,7 @@ func (s *Signer) GenerateKeytab(cfg config.Config) error {
 	}
 
 	// TODO: Permission keytab file correctly 
-	os.WriteFile(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab, generated, 0777)
+	err = os.WriteFile(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab, generated, 0777)
 	if err != nil {
 		return err
 	}

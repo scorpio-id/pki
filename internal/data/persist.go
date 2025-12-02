@@ -2,11 +2,11 @@ package data
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"fmt"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/scorpio-id/pki/internal/config"
@@ -15,6 +15,7 @@ import (
 type Persistence struct {
 	Client  *redis.Client
 	Context context.Context
+    cfg  config.Config
 }
 
 func NewPersistenceClient(cfg config.Config) Persistence {
@@ -30,6 +31,7 @@ func NewPersistenceClient(cfg config.Config) Persistence {
     return Persistence {
 		Client:  rdb,
 		Context: context.Background(),
+        cfg:     cfg,
 	}
 }
 
@@ -46,7 +48,6 @@ func (persist *Persistence) SetRSAKeyPair(private *rsa.PrivateKey) error {
     // store RSA key value pair
     err := persist.Client.Set(persist.Context, "rsa", string(block), 0).Err()
     if err != nil {
-        fmt.Println(err.Error())
         return err
     }
     
@@ -71,4 +72,32 @@ func (persist *Persistence) GetRSAKeyPair() (*rsa.PrivateKey, error) {
     }
     
     return private, nil
+}
+
+func (persist *Persistence) LoadKeyPair()(*rsa.PrivateKey, error){
+    if !persist.cfg.Persistence.Enabled {
+        return rsa.GenerateKey(rand.Reader, persist.cfg.PKI.RSABits)
+    }
+
+	stored, err := persist.GetRSAKeyPair()
+
+    // case: key doesn't exist in persistence store
+    if err == redis.Nil {
+        // start by creating a RSA public/private key pair
+        private, err := rsa.GenerateKey(rand.Reader, persist.cfg.PKI.RSABits)
+        if err != nil {
+            return nil, err
+        }
+
+        err = persist.SetRSAKeyPair(private)
+        if err != nil {
+            return nil, err
+        }
+
+        return private, nil
+    } else if err != nil {
+        return nil, err
+    }
+
+    return stored, nil
 }

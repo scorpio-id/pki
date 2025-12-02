@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"strconv"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/scorpio-id/pki/internal/config"
@@ -100,4 +101,15 @@ func (persist *Persistence) LoadKeyPair()(*rsa.PrivateKey, error){
     }
 
     return stored, nil
+}
+
+func(persist *Persistence) SetCertificateMetadata(metadata *CertificateMetadata) error {
+
+    // TODO test & document
+    err := persist.Client.HSet(persist.Context, "certificate:" + strconv.FormatInt(metadata.SerialNumber, 10), &metadata).Err()
+    if err != nil {
+        return err
+    }
+
+    return nil
 }

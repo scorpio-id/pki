@@ -21,13 +21,13 @@ type CertificateStore struct {
 
 // TODO apply Redis struct tags: https://redis.io/docs/latest/develop/clients/go/#connect
 type CertificateMetadata struct {
-	CommonName             string         `json:"common_name"`
-	SubjectAlternateNames  []string       `json:"subject_alternate_names"`
-	SerialNumber           int64          `json:"serial_number"`
-	PublicKey              *rsa.PublicKey `json:"public_key"`
-	IssuedDate             time.Time      `json:"issued"`
-	ExpirationDate         time.Time      `json:"expires"`
-	IsCertificateAuthority bool           `json:"is_certificate_authority"`
+	CommonName             string         `json:"common_name" redis:"common_name"`
+	SubjectAlternateNames  []string       `json:"subject_alternate_names" redis:"subject_alternate_names"`
+	SerialNumber           int64          `json:"serial_number" redis:"serial_number"`
+	PublicKey              *rsa.PublicKey `json:"public_key" redis:"public_key"`
+	IssuedDate             time.Time      `json:"issued" redis:"issued"`
+	ExpirationDate         time.Time      `json:"expires" redis:"expires"`
+	IsCertificateAuthority bool           `json:"is_certificate_authority" redis:"certificate_authority"`
 }
 
 func NewCertificateStore() *CertificateStore {

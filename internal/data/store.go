@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/scorpio-id/pki/internal/config"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -16,6 +17,7 @@ import (
 type CertificateStore struct {
 	Data    []CertificateMetadata `json:"certificate_data"`
 	Revoked []CertificateMetadata `json:"revoked"`
+	Persist Persistence
 	mu      sync.Mutex
 }
 
@@ -30,10 +32,12 @@ type CertificateMetadata struct {
 	IsCertificateAuthority bool           `json:"is_certificate_authority" redis:"certificate_authority"`
 }
 
-func NewCertificateStore() *CertificateStore {
+func NewCertificateStore(cfg config.Config) *CertificateStore {
+
 	return &CertificateStore{
 		Data:    make([]CertificateMetadata, 0),
 		Revoked: make([]CertificateMetadata, 0),
+		Persist: NewPersistenceClient(cfg),
 	}
 }
 
@@ -70,7 +74,14 @@ func (store *CertificateStore) AddX509Metadata(der []byte) error {
 		IsCertificateAuthority: cert.IsCA,
 	}
 
+	// add to metadata cache
 	store.Data = append(store.Data, metadata)
+
+	// add to persistent store
+	err = store.Persist.SetCertificateMetadata(metadata)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

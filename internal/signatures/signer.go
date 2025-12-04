@@ -55,7 +55,7 @@ func NewSigner(cfg config.Config, private *rsa.PrivateKey) *Signer {
 
 	// create store and add own name to store
 	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
-	store := data.NewCertificateStore()
+	store := data.NewCertificateStore(cfg)
 
 	// add root certificate to store
 	store.AddX509Metadata(cert)

@@ -3,7 +3,6 @@ package transport
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -118,15 +117,6 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 		return router, httpRouter
 	}
-
-	result, err := signer.Store.Persist.GetCertificateMetadata(signer.Certificate.SerialNumber.Int64())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Print("common name: " + result.CommonName)
-
-	fmt.Print("public key value: " + signer.Private.PublicKey.N.String())
 
 	return router, nil
 }

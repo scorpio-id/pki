@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"strconv"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/scorpio-id/pki/internal/config"
@@ -95,6 +97,7 @@ func (persist *Persistence) LoadKeyPair()(*rsa.PrivateKey, error){
         }
 
         return private, nil
+
     } else if err != nil {
         return nil, err
     }
@@ -104,14 +107,13 @@ func (persist *Persistence) LoadKeyPair()(*rsa.PrivateKey, error){
 
 func(persist *Persistence) SetCertificateMetadata(metadata CertificateMetadata) error {
 
-    // FIXME marshal metadata struct to json and store with gob: https://stackoverflow.com/questions/53697507/save-generic-struct-to-redis
-    // FIXME user unique keys
-    // err := persist.Client.HSet(persist.Context, "certificate:" + strconv.FormatInt(metadata.SerialNumber, 10), metadata).Err()
-    fields := []string {
-        "common_name", metadata.CommonName,
+    // marshal metadata struct to json and store with gob: https://stackoverflow.com/questions/53697507/save-generic-struct-to-redis
+    result, err := json.Marshal(metadata) 
+    if err != nil {
+        return err
     }
     
-    err := persist.Client.HSet(persist.Context, "myhash:1", fields).Err()
+    err = persist.Client.Set(persist.Context, "certificate:" + strconv.FormatInt(metadata.SerialNumber, 10), result, 0).Err()
     if err != nil {
         return err
     }
@@ -121,13 +123,17 @@ func(persist *Persistence) SetCertificateMetadata(metadata CertificateMetadata) 
 
 func (persist *Persistence) GetCertificateMetadata(id int64) (*CertificateMetadata, error) {
 
-    // FIXME unmarshal json gob bytes into struct: https://stackoverflow.com/questions/53697507/save-generic-struct-to-redis
-    // FIXME use unique keys
+    // unmarshal json gob bytes into struct: https://stackoverflow.com/questions/53697507/save-generic-struct-to-redis
     var metadata CertificateMetadata
-    err := persist.Client.HGetAll(persist.Context, "myhash:1").Scan(&metadata)
+    result, err := persist.Client.Get(persist.Context, "certificate:" + strconv.FormatInt(id, 10)).Result()
     if err != nil {
         return nil, err
     }
 
-    return &metadata, err
+    err = json.Unmarshal([]byte(result), &metadata)
+    if err != nil {
+        return nil, err
+    }
+
+    return &metadata, nil
 }

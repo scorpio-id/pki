@@ -23,13 +23,13 @@ type CertificateStore struct {
 
 // TODO apply Redis struct tags: https://redis.io/docs/latest/develop/clients/go/#connect
 type CertificateMetadata struct {
-	CommonName             string         `json:"common_name" redis:"common_name"`
-	SubjectAlternateNames  []string       `json:"subject_alternate_names" redis:"subject_alternate_names"`
-	SerialNumber           int64          `json:"serial_number" redis:"serial_number"`
-	PublicKey              *rsa.PublicKey `json:"public_key" redis:"public_key"`
-	IssuedDate             time.Time      `json:"issued" redis:"issued"`
-	ExpirationDate         time.Time      `json:"expires" redis:"expires"`
-	IsCertificateAuthority bool           `json:"is_certificate_authority" redis:"certificate_authority"`
+	CommonName             string         `json:"common_name"`
+	SubjectAlternateNames  []string       `json:"subject_alternate_names"`
+	SerialNumber           int64          `json:"serial_number"`
+	PublicKey              *rsa.PublicKey `json:"public_key"`
+	IssuedDate             time.Time      `json:"issued"`
+	ExpirationDate         time.Time      `json:"expires"`
+	IsCertificateAuthority bool           `json:"is_certificate_authority"`
 }
 
 func NewCertificateStore(cfg config.Config) *CertificateStore {
@@ -39,6 +39,12 @@ func NewCertificateStore(cfg config.Config) *CertificateStore {
 		Revoked: make([]CertificateMetadata, 0),
 		Persist: NewPersistenceClient(cfg),
 	}
+}
+
+func (store *CertificateStore) Populate() error {
+    // TODO query all redis entries using the persistance client with the 'certificate' key (ie: GetAll) marshal results 
+	// into metadata structs and add to certificate store.
+    return nil
 }
 
 func (store *CertificateStore) AddX509Metadata(der []byte) error {

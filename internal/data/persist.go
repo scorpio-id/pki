@@ -76,7 +76,22 @@ func (persist *Persistence) GetRSAKeyPair() (*rsa.PrivateKey, error) {
     return private, nil
 }
 
-func (persist *Persistence) LoadKeyPair()(*rsa.PrivateKey, error){
+// TODO implement x509 storage.
+func (persist *Persistence) Setx509(*x509.Certificate) error {
+    return nil
+}
+
+// TODO implement x509 storage.
+func (persist *Persistence) Getx509() (*x509.Certificate, error) {
+    return nil, nil
+}
+
+// TODO implement root CA x509 loading for persistence.
+func (persist *Persistence) LoadRootCAx509() (*x509.Certificate, error) {
+    return nil, nil
+}
+
+func (persist *Persistence) LoadKeyPair() (*rsa.PrivateKey, error) {
     if !persist.cfg.Persistence.Enabled {
         return rsa.GenerateKey(rand.Reader, persist.cfg.PKI.RSABits)
     }

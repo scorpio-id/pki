@@ -7,6 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"regexp"
@@ -110,6 +111,16 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// FIXME switch to randomly generated BigInts
+	// max := new(big.Int)
+	// max.Exp(big.NewInt(2), big.NewInt(130), nil)
+
+	// Generate secure random serial number
+	// serial, err := rand.Int(rand.Reader, max)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// increment serial number
 	s.CurrentSerialNumber += 1

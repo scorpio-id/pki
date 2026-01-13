@@ -7,7 +7,6 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"regexp"

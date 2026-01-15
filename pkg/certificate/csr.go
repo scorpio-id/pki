@@ -7,7 +7,6 @@ import (
 	"crypto/x509/pkix"
 	"log"
 	"math/big"
-	math2 "math/rand"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,7 +14,7 @@ import (
 )
 
 // Sign takes a CSR, private key, serial number, and TTL duration; produces a signed x.509 certificate
-func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Duration, parent *x509.Certificate) ([]byte, error) {
+func Sign(csr []byte, private *rsa.PrivateKey, serial *big.Int, duration time.Duration, parent *x509.Certificate) ([]byte, error) {
 	// parse CSR into template
 	request, err := x509.ParseCertificateRequest(csr)
 	if err != nil {
@@ -34,7 +33,7 @@ func Sign(csr []byte, private *rsa.PrivateKey, serial int64, duration time.Durat
 		IssuingCertificateURL: 	[]string{parent.Subject.CommonName},
 		NotAfter:               after,
 		NotBefore:              t,
-		SerialNumber:           big.NewInt(serial),
+		SerialNumber:          	serial,
 	}
 
 	// 'cert' is ASN.1 DER data
@@ -146,7 +145,7 @@ func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duratio
 		IsCA: 					true,	
 		NotAfter:     			after,
 		NotBefore:    			t,
-		SerialNumber: 			big.NewInt(math2.Int63()),
+		SerialNumber: 			big.NewInt(cfg.PKI.SerialNumber),
 	}
 
 	return x509.CreateCertificate(rand.Reader, &template, &template, &private.PublicKey, private)

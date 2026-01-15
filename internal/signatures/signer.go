@@ -7,6 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"regexp"
@@ -33,7 +34,7 @@ const suggestedFilename = "ca-public.cer"
 type Signer struct {
 	RSABits             int
 	CSRMaxMemory        int
-	CurrentSerialNumber int64
+	RootSerialNumber 	int64
 	AllowedSANs         []string
 	Duration            time.Duration
 	Name                pkix.Name
@@ -93,7 +94,7 @@ func NewSigner(cfg config.Config, private *rsa.PrivateKey) *Signer {
 	return &Signer{
 		RSABits:             cfg.PKI.RSABits,
 		CSRMaxMemory:        cfg.PKI.CSRMaxMemory,
-		CurrentSerialNumber: cfg.PKI.SerialNumber,
+		RootSerialNumber: 	 cfg.PKI.SerialNumber,
 		AllowedSANs:         cfg.PKI.AllowedNames,
 		Duration:            duration,
 		Name:                name,
@@ -112,19 +113,16 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	}
 
 	// FIXME switch to randomly generated BigInts
-	// max := new(big.Int)
-	// max.Exp(big.NewInt(2), big.NewInt(130), nil)
+	max := new(big.Int)
+	max.Exp(big.NewInt(2), big.NewInt(130), nil)
 
 	// Generate secure random serial number
-	// serial, err := rand.Int(rand.Reader, max)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	serial, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return nil, err
+	}
 
-	// increment serial number
-	s.CurrentSerialNumber += 1
-
-	signed, err := certificate.Sign(csr, s.Private, s.CurrentSerialNumber, s.Duration, s.Certificate)
+	signed, err := certificate.Sign(csr, s.Private, serial, s.Duration, s.Certificate)
 	if err != nil {
 		return nil, err
 	}

@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"strconv"
+	"math/big"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/scorpio-id/pki/internal/config"
@@ -76,14 +76,36 @@ func (persist *Persistence) GetRSAKeyPair() (*rsa.PrivateKey, error) {
     return private, nil
 }
 
-// TODO implement x509 storage.
-func (persist *Persistence) Setx509(*x509.Certificate) error {
+func (persist *Persistence) Setx509(cert *x509.Certificate) error {
+    sserial := cert.SerialNumber.String()
+
+	certBlock := pem.EncodeToMemory(
+        &pem.Block{
+		    Type:  "CERTIFICATE",
+		    Bytes: cert.Raw,
+	    },
+    )
+
+    err := persist.Client.Set(persist.Context, "certificate:"+sserial, string(certBlock), 0).Err()
+    if err != nil {
+        return err
+    }
+
     return nil
 }
+func (persist *Persistence) Getx509(id *big.Int) (*x509.Certificate, error) {
+    result, err := persist.Client.Get(persist.Context,"certificate:" + id.String()).Result()
+    if err != nil {
+        return nil, err
+    }
 
-// TODO implement x509 storage.
-func (persist *Persistence) Getx509() (*x509.Certificate, error) {
-    return nil, nil
+    // convert PEM-encoded string back into *x509.Certificate interface
+    block, _ := pem.Decode([]byte(result))
+    if block == nil {
+        return nil, errors.New("failed to parse PEM block containing the certificate")
+    }
+
+    return x509.ParseCertificate(block.Bytes)
 }
 
 // TODO implement root CA x509 loading for persistence.
@@ -128,7 +150,7 @@ func(persist *Persistence) SetCertificateMetadata(metadata CertificateMetadata) 
         return err
     }
     
-    err = persist.Client.Set(persist.Context, "certificate:" + strconv.FormatInt(metadata.SerialNumber, 10), result, 0).Err()
+    err = persist.Client.Set(persist.Context, "metadata:" + metadata.SerialNumber.String(), result, 0).Err()
     if err != nil {
         return err
     }
@@ -136,11 +158,11 @@ func(persist *Persistence) SetCertificateMetadata(metadata CertificateMetadata) 
     return nil
 }
 
-func (persist *Persistence) GetCertificateMetadata(id int64) (*CertificateMetadata, error) {
+func (persist *Persistence) GetCertificateMetadata(id *big.Int) (*CertificateMetadata, error) {
 
     // unmarshal json gob bytes into struct: https://stackoverflow.com/questions/53697507/save-generic-struct-to-redis
     var metadata CertificateMetadata
-    result, err := persist.Client.Get(persist.Context, "certificate:" + strconv.FormatInt(id, 10)).Result()
+    result, err := persist.Client.Get(persist.Context, "metadata:" + id.String()).Result()
     if err != nil {
         return nil, err
     }

@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
+	"math/big"
 	"regexp"
 	"strings"
 	"sync"
@@ -25,7 +26,7 @@ type CertificateStore struct {
 type CertificateMetadata struct {
 	CommonName             string         `json:"common_name"`
 	SubjectAlternateNames  []string       `json:"subject_alternate_names"`
-	SerialNumber           int64          `json:"serial_number"`
+	SerialNumber           *big.Int          `json:"serial_number"`
 	PublicKey              *rsa.PublicKey `json:"public_key"`
 	IssuedDate             time.Time      `json:"issued"`
 	ExpirationDate         time.Time      `json:"expires"`
@@ -73,7 +74,7 @@ func (store *CertificateStore) AddX509Metadata(der []byte) error {
 	metadata := CertificateMetadata {
 		CommonName: cert.Subject.CommonName,
 		SubjectAlternateNames: cert.DNSNames,
-		SerialNumber: cert.SerialNumber.Int64(),
+		SerialNumber: cert.SerialNumber,
 		PublicKey: public,
 		IssuedDate: cert.NotBefore,
 		ExpirationDate: cert.NotAfter,
@@ -118,7 +119,7 @@ func (store *CertificateStore) AddPKCS12Metadata(der []byte) error {
 	metadata := CertificateMetadata {
 		CommonName: cert.Subject.CommonName,
 		SubjectAlternateNames: cert.DNSNames,
-		SerialNumber: cert.SerialNumber.Int64(),
+		SerialNumber: cert.SerialNumber,
 		PublicKey: public,
 		IssuedDate: cert.NotBefore,
 		ExpirationDate: cert.NotAfter,

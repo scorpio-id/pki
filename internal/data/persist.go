@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"log"
 	"math/big"
 
 	"github.com/redis/go-redis/v9"
@@ -109,8 +110,27 @@ func (persist *Persistence) Getx509(id *big.Int) (*x509.Certificate, error) {
 }
 
 // TODO implement root CA x509 loading for persistence.
-func (persist *Persistence) LoadRootCAx509() (*x509.Certificate, error) {
-    return nil, nil
+func (persist *Persistence) LoadRootCAx509(current *x509.Certificate) (*x509.Certificate, error) {
+    // Check if persistence enabled, and if so repopulate root CA x509
+	if persist.cfg.Persistence.Enabled {
+		root, err := persist.Getx509(big.NewInt(persist.cfg.PKI.SerialNumber))
+		if err == redis.Nil {
+			log.Default().Println("No existing root x509 detected ... generating & storing new root x509.")
+            err = persist.Setx509(current)
+            if err != nil {
+                return nil, err
+            }
+
+            return current, nil
+
+		} else if err != nil {
+            return nil, err
+        }
+
+        return root, nil
+	}
+
+    return current, nil
 }
 
 func (persist *Persistence) LoadKeyPair() (*rsa.PrivateKey, error) {

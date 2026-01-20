@@ -25,9 +25,11 @@ import (
 func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 	router := mux.NewRouter()
 
+	// TODO move persistence to signer
 	// create redis client
 	persist := data.NewPersistenceClient(cfg)
 
+	// TODO move persistence to signer
 	// load RSA keypair from persistence 
 	private, err := persist.LoadKeyPair()
 	if err != nil {
@@ -35,6 +37,17 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 	}
 
 	signer := signatures.NewSigner(cfg, private)
+
+	// TODO move persistence to signer
+	// Check root CA persistence ...
+	root, err := persist.LoadRootCAx509(signer.Certificate)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// TODO move persistence to signer
+	// Set root based on load CA response
+	signer.Certificate = root
 
 	// adding swagger endpoint
 	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(

@@ -34,7 +34,7 @@ const suggestedFilename = "ca-public.cer"
 type Signer struct {
 	RSABits             int
 	CSRMaxMemory        int
-	RootSerialNumber 	int64
+	RootSerialNumber 	*big.Int
 	AllowedSANs         []string
 	Duration            time.Duration
 	Name                pkix.Name
@@ -94,7 +94,7 @@ func NewSigner(cfg config.Config, private *rsa.PrivateKey) *Signer {
 	return &Signer{
 		RSABits:             cfg.PKI.RSABits,
 		CSRMaxMemory:        cfg.PKI.CSRMaxMemory,
-		RootSerialNumber: 	 cfg.PKI.SerialNumber,
+		RootSerialNumber: 	 big.NewInt(cfg.PKI.SerialNumber),
 		AllowedSANs:         cfg.PKI.AllowedNames,
 		Duration:            duration,
 		Name:                name,

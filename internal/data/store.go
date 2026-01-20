@@ -26,7 +26,7 @@ type CertificateStore struct {
 type CertificateMetadata struct {
 	CommonName             string         `json:"common_name"`
 	SubjectAlternateNames  []string       `json:"subject_alternate_names"`
-	SerialNumber           *big.Int          `json:"serial_number"`
+	SerialNumber           *big.Int       `json:"serial_number"`
 	PublicKey              *rsa.PublicKey `json:"public_key"`
 	IssuedDate             time.Time      `json:"issued"`
 	ExpirationDate         time.Time      `json:"expires"`

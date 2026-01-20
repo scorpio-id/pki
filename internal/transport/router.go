@@ -25,11 +25,11 @@ import (
 func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 	router := mux.NewRouter()
 
-	// TODO move persistence to signer
+	// TODO persistence is already in signer store -- make consistent!
 	// create redis client
 	persist := data.NewPersistenceClient(cfg)
 
-	// TODO move persistence to signer
+	// TODO persistence is already in signer store -- make consistent!
 	// load RSA keypair from persistence 
 	private, err := persist.LoadKeyPair()
 	if err != nil {
@@ -38,14 +38,14 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 	signer := signatures.NewSigner(cfg, private)
 
-	// TODO move persistence to signer
+	// TODO persistence is already in signer store -- make consistent!
 	// Check root CA persistence ...
 	root, err := persist.LoadRootCAx509(signer.Certificate)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// TODO move persistence to signer
+	// TODO persistence is already in signer store -- make consistent!
 	// Set root based on load CA response
 	signer.Certificate = root
 

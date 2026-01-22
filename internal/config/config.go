@@ -80,6 +80,8 @@ func NewConfig(s string) Config {
 	if err != nil {
 		log.Fatal(err)
 	}
+	
+	// TODO retrieve content from Kube Secrets using configured file paths
 
 	return cfg
 }

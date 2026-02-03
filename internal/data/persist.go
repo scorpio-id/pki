@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -30,6 +31,8 @@ func NewPersistenceClient(cfg config.Config) Persistence {
         Username: cfg.Persistence.User,
         Password: cfg.Persistence.Password, 
         DB:       cfg.Persistence.Database,
+        // TODO enable TLS for redis >_>;
+        TLSConfig: &tls.Config{InsecureSkipVerify: true},
     })
 
     // Test the connection with a Ping command

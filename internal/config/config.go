@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -21,7 +22,9 @@ type Config struct {
 		Enabled  bool   `yaml:"enabled" json:"enabled"`
 		Port     string `yaml:"port" json:"port"`
 		Host     string `yaml:"host" json:"host"`
-		Password string `yaml:"password" json:"password"`
+		User     string `yaml:"user" json:"user"`
+		Path     string `yaml:"path" json:"path"`
+		Password string `yaml:"-" json:"-"` // DO NOT MARSHAL PASSWORD!
 		Database int    `yaml:"database" json:"database"`
 	} `yaml:"persistence" json:"persistence"`
 	PKI struct {
@@ -81,7 +84,18 @@ func NewConfig(s string) Config {
 		log.Fatal(err)
 	}
 	
-	// TODO retrieve content from Kube Secrets using configured file paths
+	// TODO retrieve content from Kube Secrets using configured file paths if persistence enabled
+	if cfg.Persistence.Enabled {
+		content, err := os.ReadFile(cfg.Persistence.Path)
+		if err != nil {
+			log.Fatalf("Error reading file: %v", err)
+		}
+
+		// TODO remove, print the content as a string
+		fmt.Printf("File content: %s", content)
+
+		cfg.Persistence.Password = string(content)
+	}
 
 	return cfg
 }

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"log"
 	"math/big"
 
@@ -23,13 +24,22 @@ type Persistence struct {
 
 func NewPersistenceClient(cfg config.Config) Persistence {
 
-	// TODO move password to Kube secrets
     // TODO read documentation on rdb.Close() usage
     rdb := redis.NewClient(&redis.Options{
         Addr:     cfg.Persistence.Host + ":" + cfg.Persistence.Port,
-        Password: "", 
+        Username: cfg.Persistence.User,
+        Password: cfg.Persistence.Password, 
         DB:       cfg.Persistence.Database,
     })
+
+    // Test the connection with a Ping command
+	pong, err := rdb.Ping(context.Background()).Result()
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+
+    // TODO remove print statement!
+    fmt.Println("Connected to Redis! Response:", pong)
 
     return Persistence {
 		Client:  rdb,

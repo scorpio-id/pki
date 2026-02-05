@@ -15,7 +15,6 @@ import (
 	"github.com/jcmturner/gokrb5/v8/spnego"
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
-	"github.com/scorpio-id/pki/internal/data"
 	"github.com/scorpio-id/pki/internal/signatures"
 	"github.com/scorpio-id/pki/pkg/certificate"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -24,30 +23,8 @@ import (
 // NewRouters creates a new mux router with applied server
 func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 	router := mux.NewRouter()
-
-	// TODO persistence is already in signer store -- make consistent!
-	// create redis client
-	persist := data.NewPersistenceClient(cfg)
-
-	// TODO persistence is already in signer store -- make consistent!
-	// load RSA keypair from persistence 
-	private, err := persist.LoadKeyPair()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	signer := signatures.NewSigner(cfg, private)
-
-	// TODO persistence is already in signer store -- make consistent!
-	// Check root CA persistence ...
-	root, err := persist.LoadRootCAx509(signer.Certificate)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// TODO persistence is already in signer store -- make consistent!
-	// Set root based on load CA response
-	signer.Certificate = root
+	
+	signer := signatures.NewSigner(cfg)
 
 	// adding swagger endpoint
 	router.PathPrefix("/swagger").Handler(httpSwagger.Handler(

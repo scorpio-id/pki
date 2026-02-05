@@ -2,8 +2,6 @@ package signatures
 
 import (
 	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
 	"io"
 	"log"
 	"mime/multipart"
@@ -85,14 +83,8 @@ BFQfuHjwJapnhmYVnDb3uc7KYMXk/6fcU7zk23b+bHIdfMpWRUpaUjE=
 func TestSignX509Certificate(t *testing.T) {
 	// note that test.yml config has *.example.com as allowed SANs
 	cfg := config.NewConfig("../config/test.yml")
-	
-	
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-	if err != nil {
-		t.Error(err)
-	}
 
-	s := NewSigner(cfg, private)
+	s := NewSigner(cfg)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/certificate", s.CSRHandler)
@@ -137,12 +129,7 @@ func TestSignX509CertificateDuplicateError(t *testing.T) {
 	// note that test.yml config has *.example.com as allowed SANs
 	cfg := config.NewConfig("../config/test.yml")
 
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-	if err != nil {
-		t.Error(err)
-	}
-
-	s := NewSigner(cfg, private)
+	s := NewSigner(cfg)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/certificate", s.CSRHandler)
@@ -199,12 +186,7 @@ func TestSignX509CertificateWildcardDuplicateError(t *testing.T) {
 
 	cfg := config.NewConfig("../config/test.yml")
 
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-	if err != nil {
-		t.Error(err)
-	}
-
-	s := NewSigner(cfg, private)
+	s := NewSigner(cfg)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/certificate", s.CSRHandler)
@@ -270,12 +252,7 @@ func TestSignX509CertificateWildcardExistsError(t *testing.T) {
 
 	cfg := config.NewConfig("../config/test.yml")
 
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-	if err != nil {
-		t.Error(err)
-	}
-
-	s := NewSigner(cfg, private)
+	s := NewSigner(cfg)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/certificate", s.CSRHandler)
@@ -341,12 +318,7 @@ func TestSignX509CertificateNameAllowedPolicyError(t *testing.T) {
 	
 	cfg := config.NewConfig("../config/test.yml")
 
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-	if err != nil {
-		t.Error(err)
-	}
-
-	s := NewSigner(cfg, private)
+	s := NewSigner(cfg,)
 	
 	mux := http.NewServeMux()
 	mux.HandleFunc("/certificate", s.CSRHandler)

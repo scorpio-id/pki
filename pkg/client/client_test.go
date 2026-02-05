@@ -53,12 +53,7 @@ func TestX509ClientWithCredentials(t *testing.T) {
 	// note that test.yml config has *.example.com as allowed SANs
 	cfg := config.NewConfig("../../internal/config/test.yml")
 
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-	if err != nil {
-		t.Error(err)
-	}
-
-	s := signatures.NewSigner(cfg, private)
+	s := signatures.NewSigner(cfg)
 	
 	mux := http.NewServeMux()
 	mux.HandleFunc("/certificate", s.CSRHandler)

@@ -34,6 +34,7 @@ type CertificateMetadata struct {
 }
 
 func NewCertificateStore(cfg config.Config) *CertificateStore {
+	
 
 	return &CertificateStore{
 		Data:    make([]CertificateMetadata, 0),

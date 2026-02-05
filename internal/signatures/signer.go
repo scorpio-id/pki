@@ -43,7 +43,18 @@ type Signer struct {
 	Store               *data.CertificateStore
 }
 
-func NewSigner(cfg config.Config, private *rsa.PrivateKey) *Signer {
+func NewSigner(cfg config.Config) *Signer {
+	// create store and add own name to store
+	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
+	store := data.NewCertificateStore(cfg)
+
+	// load RSA keypair from persistence 
+	private, err := store.Persist.LoadKeyPair()
+	if err != nil{
+		log.Fatal(err)
+	}
+
+	
 	duration, err := time.ParseDuration(cfg.PKI.CertificateTTL)
 	if err != nil {
 		log.Fatal(err)
@@ -53,13 +64,6 @@ func NewSigner(cfg config.Config, private *rsa.PrivateKey) *Signer {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// create store and add own name to store
-	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
-	store := data.NewCertificateStore(cfg)
-
-	// add root certificate to store
-	store.AddX509Metadata(cert)
 
 	// FIXME - consolidate config, move pki section to root section
 	// ca := data.SANs{
@@ -76,6 +80,16 @@ func NewSigner(cfg config.Config, private *rsa.PrivateKey) *Signer {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Check root CA persistence ...
+	x509, err = store.Persist.LoadRootCAx509(x509)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// add root certificate to store
+	store.AddX509Metadata(cert)
+
 
 	serialnum := uuid.NewString()
 	
@@ -186,6 +200,7 @@ func (s *Signer) GenerateKeytab(cfg config.Config) error {
 
 	return nil
 }
+
 
 
 //  CSR Handler Swagger Documentation

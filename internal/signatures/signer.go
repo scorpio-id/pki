@@ -53,14 +53,8 @@ func NewSigner(cfg config.Config) *Signer {
 	if err != nil{
 		log.Fatal(err)
 	}
-
 	
 	duration, err := time.ParseDuration(cfg.PKI.CertificateTTL)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cert, err := certificate.GenerateRootCertificate(cfg, private, duration)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,25 +65,14 @@ func NewSigner(cfg config.Config) *Signer {
 	// 	Names:        []string{cfg.PKI.CertificateAuthority.CommonName},
 	// }
 
-	// err = store.Add(ca)
-	// if err != nil {
-	// 	log.Fatalf("issue adding [%v] to blank SAN store", err)
-	// }
-
-	x509, err := x509.ParseCertificate(cert)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Check root CA persistence ...
-	x509, err = store.Persist.LoadRootCAx509(x509)
+	x509, err := store.Persist.LoadRootCAx509()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// add root certificate to store
-	store.AddX509Metadata(cert)
-
+	store.AddX509Metadata(x509.Raw)
 
 	serialnum := uuid.NewString()
 	

@@ -252,3 +252,38 @@ func (persist *Persistence) GetCertificateMetadata(id *big.Int) (*CertificateMet
 
     return &metadata, nil
 }
+
+func (persist *Persistence) GetAllCertificateMetadata() ([]CertificateMetadata, error) {
+
+    // result, err := persist.Client.HGetAll(persist.Context, "metadata:*").Result()
+    // TODO SCAN, then MGET with all keys
+    // TODO check what the 0 value implies in the Scan() function
+    var cursor uint64
+    keys, cursor, err := persist.Client.Scan(persist.Context, cursor, "metadata:*", 0).Result()
+	if err != nil {
+		return nil, err
+	}
+
+    // WARNING this may result in a large function invocation!
+    result, err := persist.Client.MGet(persist.Context, keys...).Result()
+
+    // printing for visual
+    // fmt.Println(string(result))
+
+    var metadata []CertificateMetadata
+
+    for _, entry := range result {
+
+        // marshal the entry of type interface{} into a CertificateMetadata struct
+        var template CertificateMetadata
+
+        err = json.Unmarshal([]byte(entry.(string)), &template)
+        if err != nil {
+            return nil, err
+        }
+
+        metadata = append(metadata, template)
+    }
+
+    return metadata, nil
+}

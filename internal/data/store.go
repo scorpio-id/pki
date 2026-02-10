@@ -35,7 +35,6 @@ type CertificateMetadata struct {
 
 func NewCertificateStore(cfg config.Config) *CertificateStore {
 	
-
 	return &CertificateStore{
 		Data:    make([]CertificateMetadata, 0),
 		Revoked: make([]CertificateMetadata, 0),
@@ -46,6 +45,17 @@ func NewCertificateStore(cfg config.Config) *CertificateStore {
 func (store *CertificateStore) Populate() error {
     // TODO query all redis entries using the persistance client with the 'certificate' key (ie: GetAll) marshal results 
 	// into metadata structs and add to certificate store.
+
+	data, err := store.Persist.GetAllCertificateMetadata()
+	if err != nil {
+		return err
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	store.Data = data
+
     return nil
 }
 

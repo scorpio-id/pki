@@ -74,6 +74,14 @@ func NewSigner(cfg config.Config) *Signer {
 	// add root certificate to store
 	store.AddX509Metadata(x509.Raw)
 
+	// Check if persistence is enabled and if so, populate the store
+	if cfg.Persistence.Enabled {
+		err := store.Populate()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	serialnum := uuid.NewString()
 	
 	name := pkix.Name{

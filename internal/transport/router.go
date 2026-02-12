@@ -3,6 +3,7 @@ package transport
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -61,6 +62,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 		webCert, err := signer.CreateX509(csr)
 		if err != nil {
+			fmt.Println("error in creating web server HTTPS x509")
 			log.Fatal(err)
 		}				
 

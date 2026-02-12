@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -12,11 +11,9 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/scorpio-id/pki/internal/config"
-	"github.com/scorpio-id/pki/pkg/certificate"
 )
 
 type Persistence struct {
@@ -124,101 +121,6 @@ func (persist *Persistence) Getx509(id *big.Int) (*x509.Certificate, error) {
     return x509.ParseCertificate(block.Bytes)
 }
 
-// TODO implement root CA x509 loading for persistence.
-func (persist *Persistence) LoadRootCAx509() (*x509.Certificate, error) {
-    // Check if persistence enabled, and if so repopulate root CA x509
-	if persist.cfg.Persistence.Enabled {
-		root, err := persist.Getx509(big.NewInt(persist.cfg.PKI.SerialNumber))
-		if err == redis.Nil {
-			log.Default().Println("No existing root x509 detected ... generating & storing new root x509.")
-            
-            // load RSA keypair 
-            private, err := persist.LoadKeyPair()
-            if err != nil{
-                log.Fatal(err)
-            }
-
-            duration, err := time.ParseDuration(persist.cfg.PKI.CertificateTTL)
-            if err != nil {
-                log.Fatal(err)
-            }
-
-            cert, err := certificate.GenerateRootCertificate(persist.cfg, private, duration)
-            if err != nil {
-                log.Fatal(err)
-            }
-
-            current, err := x509.ParseCertificate(cert)
-            if err != nil {
-                log.Fatal(err)
-            }
-            
-            err = persist.Setx509(current)
-            if err != nil {
-                return nil, err
-            }
-
-            return current, nil
-
-		} else if err != nil {
-            return nil, err
-        }
-
-        return root, nil
-	}
-
-    // load RSA keypair 
-    private, err := persist.LoadKeyPair()
-    if err != nil{
-        log.Fatal(err)
-    }
-
-    duration, err := time.ParseDuration(persist.cfg.PKI.CertificateTTL)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    cert, err := certificate.GenerateRootCertificate(persist.cfg, private, duration)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    x509, err := x509.ParseCertificate(cert)
-    if err != nil {
-        log.Fatal(err)
-    }
-            
-    return x509, nil
-}
-
-func (persist *Persistence) LoadKeyPair() (*rsa.PrivateKey, error) {
-    if !persist.cfg.Persistence.Enabled {
-        return rsa.GenerateKey(rand.Reader, persist.cfg.PKI.RSABits)
-    }
-
-	stored, err := persist.GetRSAKeyPair()
-
-    // case: key doesn't exist in persistence store
-    if err == redis.Nil {
-        // start by creating a RSA public/private key pair
-        private, err := rsa.GenerateKey(rand.Reader, persist.cfg.PKI.RSABits)
-        if err != nil {
-            return nil, err
-        }
-
-        err = persist.SetRSAKeyPair(private)
-        if err != nil {
-            return nil, err
-        }
-
-        return private, nil
-
-    } else if err != nil {
-        return nil, err
-    }
-
-    return stored, nil
-}
 
 func(persist *Persistence) SetCertificateMetadata(metadata CertificateMetadata) error {
 

@@ -22,9 +22,9 @@ import (
 )
 
 // NewRouters creates a new mux router with applied server
-func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
+func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 	router := mux.NewRouter()
-	
+
 	signer := signatures.NewSigner(cfg)
 
 	// adding swagger endpoint
@@ -50,11 +50,13 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 	// install CA certificates locally if target OS is linux
 	if runtime.GOOS == "linux" {
+
+		// FIXME check if persistence is enabled and load cert 
 		private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
 		if err != nil {
 			log.Fatal(err)
 		}
-	
+
 		csr, err := certificate.GenerateDomainClientCSR(cfg, private)
 		if err != nil {
 			log.Fatal(err)
@@ -64,10 +66,10 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 		if err != nil {
 			fmt.Println("error in creating web server HTTPS x509")
 			log.Fatal(err)
-		}				
+		}
 
 		// install certificates
-		err = SerializeX509(private, webCert)
+		err = InstallX509(private, webCert)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -104,7 +106,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 		// metadata endpoint for console UI
 		subr.HandleFunc("/metadata", signer.CertificateStoreHandler).Methods(http.MethodGet, http.MethodOptions)
 
-		// enable CORS 
+		// enable CORS
 		subr.Use(mux.CORSMethodMiddleware(subr))
 
 		return router, httpRouter
@@ -112,4 +114,3 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 	return router, nil
 }
-

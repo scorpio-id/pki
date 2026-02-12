@@ -38,7 +38,7 @@ type CertificateMetadata struct {
 }
 
 func NewCertificateStore(cfg config.Config) *CertificateStore {
-	
+
 	return &CertificateStore{
 		Data:    make([]CertificateMetadata, 0),
 		Revoked: make([]CertificateMetadata, 0),
@@ -47,7 +47,7 @@ func NewCertificateStore(cfg config.Config) *CertificateStore {
 }
 
 func (store *CertificateStore) Populate() error {
-    // TODO query all redis entries using the persistance client with the 'certificate' key (ie: GetAll) marshal results 
+	// TODO query all redis entries using the persistance client with the 'certificate' key (ie: GetAll) marshal results
 	// into metadata structs and add to certificate store.
 
 	data, err := store.Persist.GetAllCertificateMetadata()
@@ -60,107 +60,107 @@ func (store *CertificateStore) Populate() error {
 
 	store.Data = data
 
-    return nil
+	return nil
 }
-// TODO implement root CA x509 loading for persistence.
-func (store *CertificateStore) LoadRootCAx509() (*x509.Certificate, error) {
-    // Check if persistence enabled, and if so repopulate root CA x509
+
+func (store *CertificateStore) LoadX509() (*x509.Certificate, error) {
+	// Check if persistence enabled, and if so repopulate root CA x509
 	if store.Persist.cfg.Persistence.Enabled {
 		root, err := store.Persist.Getx509(big.NewInt(store.Persist.cfg.PKI.SerialNumber))
 		if err == redis.Nil {
 			log.Default().Println("No existing root x509 detected ... generating & storing new root x509.")
-            
-            // load RSA keypair 
-            private, err := store.LoadKeyPair()
-            if err != nil{
-                log.Fatal(err)
-            }
 
-            duration, err := time.ParseDuration(store.Persist.cfg.PKI.CertificateTTL)
-            if err != nil {
-                log.Fatal(err)
-            }
+			// load RSA keypair
+			private, err := store.LoadKeyPair()
+			if err != nil {
+				log.Fatal(err)
+			}
 
-            cert, err := certificate.GenerateRootCertificate(store.Persist.cfg, private, duration)
-            if err != nil {
-                log.Fatal(err)
-            }
+			duration, err := time.ParseDuration(store.Persist.cfg.PKI.CertificateTTL)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			cert, err := certificate.GenerateRootCertificate(store.Persist.cfg, private, duration)
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			err = store.AddX509Metadata(cert)
-            if err != nil {
-                log.Fatal(err)
-            }
+			if err != nil {
+				log.Fatal(err)
+			}
 
-            current, err := x509.ParseCertificate(cert)
-            if err != nil {
-                log.Fatal(err)
-            }
-            
-            err = store.Persist.Setx509(current)
-            if err != nil {
-                return nil, err
-            }
+			current, err := x509.ParseCertificate(cert)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-            return current, nil
+			err = store.Persist.Setx509(current)
+			if err != nil {
+				return nil, err
+			}
+
+			return current, nil
 
 		} else if err != nil {
-            return nil, err
-        }
+			return nil, err
+		}
 
-        return root, nil
+		return root, nil
 	}
 
-    // load RSA keypair 
-    private, err := store.LoadKeyPair()
-    if err != nil{
-        log.Fatal(err)
-    }
+	// load RSA keypair
+	private, err := store.LoadKeyPair()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    duration, err := time.ParseDuration(store.Persist.cfg.PKI.CertificateTTL)
-    if err != nil {
-        log.Fatal(err)
-    }
+	duration, err := time.ParseDuration(store.Persist.cfg.PKI.CertificateTTL)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    cert, err := certificate.GenerateRootCertificate(store.Persist.cfg, private, duration)
-    if err != nil {
-        log.Fatal(err)
-    }
+	cert, err := certificate.GenerateRootCertificate(store.Persist.cfg, private, duration)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    x509, err := x509.ParseCertificate(cert)
-    if err != nil {
-        log.Fatal(err)
-    }
-            
-    return x509, nil
+	x509, err := x509.ParseCertificate(cert)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return x509, nil
 }
 
 func (store *CertificateStore) LoadKeyPair() (*rsa.PrivateKey, error) {
-    if !store.Persist.cfg.Persistence.Enabled {
-        return rsa.GenerateKey(rand.Reader, store.Persist.cfg.PKI.RSABits)
-    }
+	if !store.Persist.cfg.Persistence.Enabled {
+		return rsa.GenerateKey(rand.Reader, store.Persist.cfg.PKI.RSABits)
+	}
 
 	stored, err := store.Persist.GetRSAKeyPair()
 
-    // case: key doesn't exist in persistence store
-    if err == redis.Nil {
-        // start by creating a RSA public/private key pair
-        private, err := rsa.GenerateKey(rand.Reader, store.Persist.cfg.PKI.RSABits)
-        if err != nil {
-            return nil, err
-        }
+	// case: key doesn't exist in persistence store
+	if err == redis.Nil {
+		// start by creating a RSA public/private key pair
+		private, err := rsa.GenerateKey(rand.Reader, store.Persist.cfg.PKI.RSABits)
+		if err != nil {
+			return nil, err
+		}
 
-        err = store.Persist.SetRSAKeyPair(private)
-        if err != nil {
-            return nil, err
-        }
+		err = store.Persist.SetRSAKeyPair(private)
+		if err != nil {
+			return nil, err
+		}
 
-        return private, nil
+		return private, nil
 
-    } else if err != nil {
-        return nil, err
-    }
+	} else if err != nil {
+		return nil, err
+	}
 
-    return stored, nil
+	return stored, nil
 }
 
 func (store *CertificateStore) AddX509Metadata(der []byte) error {
@@ -186,13 +186,13 @@ func (store *CertificateStore) AddX509Metadata(der []byte) error {
 	}
 
 	// TODO - check if issued and expiration dates are correctly formatted
-	metadata := CertificateMetadata {
-		CommonName: cert.Subject.CommonName,
-		SubjectAlternateNames: cert.DNSNames,
-		SerialNumber: cert.SerialNumber,
-		PublicKey: public,
-		IssuedDate: cert.NotBefore,
-		ExpirationDate: cert.NotAfter,
+	metadata := CertificateMetadata{
+		CommonName:             cert.Subject.CommonName,
+		SubjectAlternateNames:  cert.DNSNames,
+		SerialNumber:           cert.SerialNumber,
+		PublicKey:              public,
+		IssuedDate:             cert.NotBefore,
+		ExpirationDate:         cert.NotAfter,
 		IsCertificateAuthority: cert.IsCA,
 	}
 
@@ -231,13 +231,13 @@ func (store *CertificateStore) AddPKCS12Metadata(der []byte) error {
 	}
 
 	// TODO - check if issued and expiration dates are correctly formatted
-	metadata := CertificateMetadata {
-		CommonName: cert.Subject.CommonName,
-		SubjectAlternateNames: cert.DNSNames,
-		SerialNumber: cert.SerialNumber,
-		PublicKey: public,
-		IssuedDate: cert.NotBefore,
-		ExpirationDate: cert.NotAfter,
+	metadata := CertificateMetadata{
+		CommonName:             cert.Subject.CommonName,
+		SubjectAlternateNames:  cert.DNSNames,
+		SerialNumber:           cert.SerialNumber,
+		PublicKey:              public,
+		IssuedDate:             cert.NotBefore,
+		ExpirationDate:         cert.NotAfter,
 		IsCertificateAuthority: cert.IsCA,
 	}
 
@@ -255,7 +255,7 @@ func (store *CertificateStore) Revoke(sans []string) error {
 }
 
 func (store *CertificateStore) CheckSANsUnique(names []string) error {
-	
+
 	// ensure SAN is free.
 	for _, data := range store.Data {
 		for _, san := range data.SubjectAlternateNames {

@@ -32,15 +32,15 @@ const suggestedFilename = "ca-public.cer"
 
 // Signer generates an RSA public, private key pair and signs X.509 certificates
 type Signer struct {
-	RSABits             int
-	CSRMaxMemory        int
-	RootSerialNumber 	*big.Int
-	AllowedSANs         []string
-	Duration            time.Duration
-	Name                pkix.Name
-	Certificate         *x509.Certificate
-	Private             *rsa.PrivateKey
-	Store               *data.CertificateStore
+	RSABits          int
+	CSRMaxMemory     int
+	RootSerialNumber *big.Int
+	AllowedSANs      []string
+	Duration         time.Duration
+	Name             pkix.Name
+	Certificate      *x509.Certificate
+	Private          *rsa.PrivateKey
+	Store            *data.CertificateStore
 }
 
 func NewSigner(cfg config.Config) *Signer {
@@ -48,12 +48,12 @@ func NewSigner(cfg config.Config) *Signer {
 	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
 	store := data.NewCertificateStore(cfg)
 
-	// load RSA keypair from persistence 
+	// load RSA keypair from persistence
 	private, err := store.LoadKeyPair()
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	duration, err := time.ParseDuration(cfg.PKI.CertificateTTL)
 	if err != nil {
 		log.Fatal(err)
@@ -66,7 +66,7 @@ func NewSigner(cfg config.Config) *Signer {
 	// }
 
 	// Check root CA persistence ...
-	x509, err := store.LoadRootCAx509()
+	x509, err := store.LoadX509()
 	if err != nil {
 		fmt.Println("error in creating root CA x509")
 		log.Fatal(err)
@@ -81,29 +81,29 @@ func NewSigner(cfg config.Config) *Signer {
 	}
 
 	serialnum := uuid.NewString()
-	
+
 	name := pkix.Name{
-		Country: []string{cfg.Root.Country},
-		Organization: []string{cfg.Root.Organization},
+		Country:            []string{cfg.Root.Country},
+		Organization:       []string{cfg.Root.Organization},
 		OrganizationalUnit: []string{cfg.Root.OrganizationalUnit},
-		Locality: []string{cfg.Root.Locality},
-		Province: []string{cfg.Root.Province},
-		StreetAddress: []string{cfg.Root.StreetAddress},
-		PostalCode: []string{cfg.Root.PostalCode},
-		SerialNumber: serialnum,
-		CommonName: cfg.Root.CommonName,
+		Locality:           []string{cfg.Root.Locality},
+		Province:           []string{cfg.Root.Province},
+		StreetAddress:      []string{cfg.Root.StreetAddress},
+		PostalCode:         []string{cfg.Root.PostalCode},
+		SerialNumber:       serialnum,
+		CommonName:         cfg.Root.CommonName,
 	}
 
 	return &Signer{
-		RSABits:             cfg.PKI.RSABits,
-		CSRMaxMemory:        cfg.PKI.CSRMaxMemory,
-		RootSerialNumber: 	 big.NewInt(cfg.PKI.SerialNumber),
-		AllowedSANs:         cfg.PKI.AllowedNames,
-		Duration:            duration,
-		Name:                name,
-		Certificate:         x509,
-		Private:             private,
-		Store:               store,
+		RSABits:          cfg.PKI.RSABits,
+		CSRMaxMemory:     cfg.PKI.CSRMaxMemory,
+		RootSerialNumber: big.NewInt(cfg.PKI.SerialNumber),
+		AllowedSANs:      cfg.PKI.AllowedNames,
+		Duration:         duration,
+		Name:             name,
+		Certificate:      x509,
+		Private:          private,
+		Store:            store,
 	}
 }
 
@@ -181,8 +181,8 @@ func (s *Signer) GenerateKeytab(cfg config.Config) error {
 		return err
 	}
 
-	// TODO: Permission keytab file correctly 
-	err = os.WriteFile(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab, generated, 0777)
+	// TODO: Permission keytab file correctly
+	err = os.WriteFile(cfg.Spnego.Volume+"/"+cfg.Spnego.Keytab, generated, 0777)
 	if err != nil {
 		return err
 	}
@@ -190,20 +190,18 @@ func (s *Signer) GenerateKeytab(cfg config.Config) error {
 	return nil
 }
 
-
-
-//  CSR Handler Swagger Documentation
+//	 CSR Handler Swagger Documentation
 //
-//	@Summary		Processes Certificate Signing Requests and returns X.509
-//	@Description	The CSR handler is responsible for processing Certificate Signing Requests (CSRs). It validates incoming CSR data, ensuring compliance with formatting and policy standardsnn are met. Once validated, the handler creates a new digital certificate with the entity's public key and associated identity information. The handler produces and returns a PEM encoded certificate 
-//	@Tags			CSR 
-//	@Accept			mpfd
-//	@Produce		octet-stream
-//	@Success		200				{body}		file		"Certificate.pem"
-//	@Failure		400				{string}	http.error	"Bad Request"
-//	@Failure		415				{string}	http.error	"Unsuported Media - Must be Multipart Form Data"
+//		@Summary		Processes Certificate Signing Requests and returns X.509
+//		@Description	The CSR handler is responsible for processing Certificate Signing Requests (CSRs). It validates incoming CSR data, ensuring compliance with formatting and policy standardsnn are met. Once validated, the handler creates a new digital certificate with the entity's public key and associated identity information. The handler produces and returns a PEM encoded certificate
+//		@Tags			CSR
+//		@Accept			mpfd
+//		@Produce		octet-stream
+//		@Success		200				{body}		file		"Certificate.pem"
+//		@Failure		400				{string}	http.error	"Bad Request"
+//		@Failure		415				{string}	http.error	"Unsuported Media - Must be Multipart Form Data"
 //
-//	@Router	/certificate [post]
+//		@Router	/certificate [post]
 //
 // CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
@@ -266,6 +264,7 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 }
+
 // PKCS #12 Handler Swagger Documentation
 //
 //	@Summary		Handles PKCS #12 request
@@ -285,7 +284,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		return
 	}
-	
+
 	// generate new RSA identity for PKCS12
 	private, err := rsa.GenerateKey(rand.Reader, s.RSABits)
 	if err != nil {
@@ -363,7 +362,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 // SPNEGO Handler Swagger Documentation
 //
 //	@Summary		Handles SPNEGO request
-//	@Description	SPNEGOHandler accepts a list of SANs to produce a PKCS-12 
+//	@Description	SPNEGOHandler accepts a list of SANs to produce a PKCS-12
 //	@Tags			SPNEGO
 //	@Accept			x-www-form-urlencoded
 //	@Produce		octet-stream
@@ -438,7 +437,7 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 //	@Tags		Certificates
 //	@Success	200	{JSON}
 //	@Router		/metadata [get]
-// 
+//
 // CertificateStoreHandler returns a JSON description of all issued, active, and revoked certificates
 func (s *Signer) CertificateStoreHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -447,8 +446,8 @@ func (s *Signer) CertificateStoreHandler(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Headers", "*")
-        return
-    }
+		return
+	}
 
 	// TODO - return JSON (JWKS?) representation
 	w.Header().Set("Content-Type", "application/json")
@@ -468,7 +467,7 @@ func (s *Signer) CertificateStoreHandler(w http.ResponseWriter, r *http.Request)
 //	@Tags		Certificates
 //	@Success	200	{file}	Public	X.509	(PEM Encoded)
 //	@Router		/public [get]
-// 
+//
 // PublicHandler returns the public X.509 of the certificate authority
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -495,10 +494,8 @@ func VerifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if !match {
-		return fmt.Errorf("Content-Type header must contain multipart/form-data with boundary") 
+		return fmt.Errorf("Content-Type header must contain multipart/form-data with boundary")
 	}
 
 	return nil
 }
-
-

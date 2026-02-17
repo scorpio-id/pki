@@ -5,7 +5,7 @@ server:
 
 persistence:
   enabled: true
-  host: "db-valkey-nyc1-scorpio-do-user-16782644-0.e.db.ondigitalocean.com"
+  host: "db-valkey-nyc1-scorpio-do-user-16782644-0.l.db.ondigitalocean.com"
   port: 25061
   user: "default"
   path: "/etc/scorpio-secret/password"

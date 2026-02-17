@@ -49,7 +49,7 @@ func NewSigner(cfg config.Config) *Signer {
 	store := data.NewCertificateStore(cfg)
 
 	// load RSA keypair from persistence
-	private, err := store.LoadKeyPair()
+	private, err := store.LoadKeyPair(big.NewInt(cfg.Root.SerialNumber))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func NewSigner(cfg config.Config) *Signer {
 	// }
 
 	// Check root CA persistence ...
-	x509, err := store.LoadX509()
+	x509, err := store.LoadRootX509(big.NewInt(cfg.Root.SerialNumber))
 	if err != nil {
 		fmt.Println("error in creating root CA x509")
 		log.Fatal(err)

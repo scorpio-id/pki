@@ -109,7 +109,7 @@ func GenerateDomainClientCSR(cfg config.Config, private *rsa.PrivateKey) ([]byte
 		Subject: name,
 		PublicKeyAlgorithm: 1,
 		PublicKey:          &private.PublicKey,
-		DNSNames:     		cfg.Root.SANs,
+		DNSNames:     		cfg.PKI.SANs,
 	}
 
 	return x509.CreateCertificateRequest(rand.Reader, &template, private)

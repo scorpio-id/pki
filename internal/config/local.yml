@@ -14,7 +14,8 @@ persistence:
 # pki configuration
 pki:
   rsa_bits: 2048
-  serial_number: 1000
+  # WARNING: cannot be same serial number as root CA!
+  serial_number: 1001
   csr_max_memory: 1024
   certificate_ttl: "8760h"
   certificate_authority: 
@@ -23,7 +24,8 @@ pki:
     - "^$"
     - ".*\\.scorpio\\.ordinarycomputing\\.com"
     - ".*\\.example\\.com"
-  # TODO add sans section here and id for web cert
+  sans:
+    - "ca.scorpio.ordinarycomputing.com"
 
 # oauth configuration
 oauth:
@@ -41,9 +43,7 @@ root:
   address: "16192 Coastal Highway"
   postal: "19958"
   cn: "ca.scorpio.ordinarycomputing.com"
-  # TODO move sans key to pki section above and update config.go
-  sans:
-    - "ca.scorpio.ordinarycomputing.com"
+  serial_number: 1000
   install:
     path: "/etc/ssl/certs"
     cert_filename: "scorpio-root.pem"

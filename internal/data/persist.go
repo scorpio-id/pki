@@ -50,7 +50,7 @@ func NewPersistenceClient(cfg config.Config) Persistence {
 	}
 }
 
-func (persist *Persistence) SetRSAKeyPair(private *rsa.PrivateKey) error {
+func (persist *Persistence) SetRSAKeyPair(private *rsa.PrivateKey, id *big.Int) error {
     // convert RSA key pair into a PEM-encoded string
     bytes := x509.MarshalPKCS1PrivateKey(private)
     block := pem.EncodeToMemory(
@@ -61,7 +61,7 @@ func (persist *Persistence) SetRSAKeyPair(private *rsa.PrivateKey) error {
             )
   
     // store RSA key value pair
-    err := persist.Client.Set(persist.Context, "rsa", string(block), 0).Err()
+    err := persist.Client.Set(persist.Context, "rsa:" + id.String(), string(block), 0).Err()
     if err != nil {
         return err
     }
@@ -69,8 +69,8 @@ func (persist *Persistence) SetRSAKeyPair(private *rsa.PrivateKey) error {
     return nil
 }
 
-func (persist *Persistence) GetRSAKeyPair() (*rsa.PrivateKey, error) {
-    result, err := persist.Client.Get(persist.Context, "rsa").Result()
+func (persist *Persistence) GetRSAKeyPair(id *big.Int) (*rsa.PrivateKey, error) {
+    result, err := persist.Client.Get(persist.Context, "rsa:" + id.String()).Result()
     if err != nil {
         return nil, err
     }

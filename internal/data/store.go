@@ -63,15 +63,15 @@ func (store *CertificateStore) Populate() error {
 	return nil
 }
 
-func (store *CertificateStore) LoadX509() (*x509.Certificate, error) {
+func (store *CertificateStore) LoadRootX509(id *big.Int) (*x509.Certificate, error) {
 	// Check if persistence enabled, and if so repopulate root CA x509
 	if store.Persist.cfg.Persistence.Enabled {
-		root, err := store.Persist.Getx509(big.NewInt(store.Persist.cfg.PKI.SerialNumber))
+		root, err := store.Persist.Getx509(id)
 		if err == redis.Nil {
-			log.Default().Println("No existing root x509 detected ... generating & storing new root x509.")
+			log.Default().Printf("No existing x509 detected, generating & storing new x509 with id [%d]", id)
 
 			// load RSA keypair
-			private, err := store.LoadKeyPair()
+			private, err := store.LoadKeyPair(id)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -111,7 +111,7 @@ func (store *CertificateStore) LoadX509() (*x509.Certificate, error) {
 	}
 
 	// load RSA keypair
-	private, err := store.LoadKeyPair()
+	private, err := store.LoadKeyPair(id)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,12 +134,27 @@ func (store *CertificateStore) LoadX509() (*x509.Certificate, error) {
 	return x509, nil
 }
 
-func (store *CertificateStore) LoadKeyPair() (*rsa.PrivateKey, error) {
+// LoadWebX509AndPrivateKey is used to retrieve x509 and private key data for local web server HTTPS
+func(store *CertificateStore) LoadWebX509AndPrivateKey(id *big.Int) (*rsa.PrivateKey, []byte, error) {
+	private, err := store.Persist.GetRSAKeyPair(id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cert, err := store.Persist.Getx509(id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return private, cert.Raw, nil
+}
+
+func (store *CertificateStore) LoadKeyPair(id *big.Int) (*rsa.PrivateKey, error) {
 	if !store.Persist.cfg.Persistence.Enabled {
 		return rsa.GenerateKey(rand.Reader, store.Persist.cfg.PKI.RSABits)
 	}
 
-	stored, err := store.Persist.GetRSAKeyPair()
+	stored, err := store.Persist.GetRSAKeyPair(id)
 
 	// case: key doesn't exist in persistence store
 	if err == redis.Nil {
@@ -149,7 +164,7 @@ func (store *CertificateStore) LoadKeyPair() (*rsa.PrivateKey, error) {
 			return nil, err
 		}
 
-		err = store.Persist.SetRSAKeyPair(private)
+		err = store.Persist.SetRSAKeyPair(private, id)
 		if err != nil {
 			return nil, err
 		}

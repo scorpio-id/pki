@@ -36,6 +36,7 @@ type Config struct {
 		CertificateAuthority struct {
 			CommonName string `yaml:"common_name" json:"common_name"`
 		} `yaml:"certificate_authority" json:"certificate_authority"`
+		SANs                 []string `yaml:"sans" json:"sans"`
 	} `yaml:"pki" json:"pki"`
 	OAuth struct {
 		Enabled        bool     `yaml:"enabled" json:"enabled"`
@@ -49,8 +50,8 @@ type Config struct {
 		Province           string   `yaml:"province" json:"province"`	
 		StreetAddress      string   `yaml:"address" json:"address"`	
 		PostalCode         string   `yaml:"postal" json:"postal"`	
-		CommonName         string   `yaml:"cn" json:"cn"`	
-		SANs               []string `yaml:"sans" json:"sans"`
+		CommonName         string   `yaml:"cn" json:"cn"`
+		SerialNumber         int64    `yaml:"serial_number" json:"serial_number"`
 		Install struct{
 			Path               string `yaml:"path" json:"path"`
 			CertFilename       string `yaml:"cert_filename" json:"cert_filename"`

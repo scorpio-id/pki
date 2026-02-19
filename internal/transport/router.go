@@ -74,7 +74,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 					log.Fatal(err)
 				}
 
-				webCert, err = signer.CreateX509(csr)
+				webCert, err = signer.CreateX509WithSerial(csr, big.NewInt(cfg.PKI.SerialNumber))
 				if err != nil {
 					fmt.Println("error in creating web server HTTPS x509")
 					log.Fatal(err)

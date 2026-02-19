@@ -139,6 +139,28 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 	return signed, nil
 }
 
+// CreateX509WithSerial allows the signer to generate a signed X.509 based off configurations
+func (s *Signer) CreateX509WithSerial(csr []byte, serial *big.Int) ([]byte, error) {
+	// ensure desired SAN is allowed per policy configuration
+	err := s.EnforceNamePolicy(csr)
+	if err != nil {
+		return nil, err
+	}
+
+	signed, err := certificate.Sign(csr, s.Private, serial, s.Duration, s.Certificate)
+	if err != nil {
+		return nil, err
+	}
+
+	// add metadata to certificate store, enforce SAN unique
+	err = s.Store.AddX509Metadata(signed)
+	if err != nil {
+		return nil, err
+	}
+
+	return signed, nil
+}
+
 // EnforceNamePolicy ensures that requested Common Name and SANs are within configured naming standards policy
 func (s *Signer) EnforceNamePolicy(csr []byte) error {
 	template, err := x509.ParseCertificateRequest(csr)

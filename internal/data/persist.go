@@ -44,11 +44,11 @@ func NewPersistenceClient(cfg config.Config) Persistence {
 	fmt.Println("Connected to Redis! Response:", pong)
 
     // WARNING wiping DB for testing purposes ...
-    fmt.Println("Flushing DB for testing purposes ...")
-    err = rdb.FlushAll(context.Background()).Err()
-    if err != nil {
-        fmt.Println("Failed to flush DB!")
-    }
+    // fmt.Println("Flushing DB for testing purposes ...")
+    // err = rdb.FlushAll(context.Background()).Err()
+    // if err != nil {
+    //     fmt.Println("Failed to flush DB!")
+    // }
 
 	return Persistence{
 		Client:  rdb,

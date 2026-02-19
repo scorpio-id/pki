@@ -90,7 +90,8 @@ func GenerateCSRWithPrivateKey(info pkix.Name, sans []string, private *rsa.Priva
 
 // Generate a CSR specific to the Scorpio Web Server Client
 func GenerateDomainClientCSR(cfg config.Config, private *rsa.PrivateKey) ([]byte, error) {
-	serial := uuid.NewString()
+	// FIXME this *was* the issue with the web cert content not being found in persistence!
+	// serial := uuid.NewString()
 
 	name := pkix.Name{
 		Country: []string{cfg.Root.Country},
@@ -100,8 +101,8 @@ func GenerateDomainClientCSR(cfg config.Config, private *rsa.PrivateKey) ([]byte
 		Province: []string{cfg.Root.Province},
 		StreetAddress: []string{cfg.Root.StreetAddress},
 		PostalCode: []string{cfg.Root.PostalCode},
-		SerialNumber: serial,
-		CommonName: cfg.Root.CommonName,
+		SerialNumber: big.NewInt(cfg.PKI.SerialNumber).String(),
+		CommonName: cfg.PKI.CertificateAuthority.CommonName,
 	}
 	
 	// using config root sans

@@ -63,6 +63,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 			private, webCert, err = signer.Store.LoadWebX509AndPrivateKey(big.NewInt(cfg.PKI.SerialNumber))
 			// persistence is enabled, but no web cert has been generated yet
 			if err == redis.Nil {
+				fmt.Println("persistence enabled, but no web private key, x509 found. generating ...")
 				private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
 				if err != nil {
 					log.Fatal(err)

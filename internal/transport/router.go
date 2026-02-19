@@ -125,7 +125,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 		if webCert == nil {
 			fmt.Println("web cert is nil!")
 		}
-		
+
 		// install certificates
 		err = InstallX509(private, webCert)
 		if err != nil {

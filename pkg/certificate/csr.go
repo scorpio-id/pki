@@ -123,8 +123,6 @@ func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duratio
 	t := time.Now()
 	after := t.Add(duration)
 
-	serial := uuid.NewString()
-
 	name := pkix.Name{
 		Country: []string{cfg.Root.Country},
 		Organization: []string{cfg.Root.Organization},
@@ -133,7 +131,7 @@ func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duratio
 		Province: []string{cfg.Root.Province},
 		StreetAddress: []string{cfg.Root.StreetAddress},
 		PostalCode: []string{cfg.Root.PostalCode},
-		SerialNumber: serial,
+		SerialNumber: big.NewInt(cfg.Root.SerialNumber).String(),
 		CommonName: cfg.Root.CommonName,
 	}
 
@@ -146,7 +144,7 @@ func GenerateRootCertificate(cfg config.Config, private *rsa.PrivateKey, duratio
 		IsCA: 					true,	
 		NotAfter:     			after,
 		NotBefore:    			t,
-		SerialNumber: 			big.NewInt(cfg.PKI.SerialNumber),
+		SerialNumber: 			big.NewInt(cfg.Root.SerialNumber),
 	}
 
 	return x509.CreateCertificate(rand.Reader, &template, &template, &private.PublicKey, private)

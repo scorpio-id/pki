@@ -66,7 +66,7 @@ func (store *CertificateStore) Populate() error {
 func (store *CertificateStore) LoadRootX509(id *big.Int) (*x509.Certificate, error) {
 	// Check if persistence enabled, and if so repopulate root CA x509
 	if store.Persist.cfg.Persistence.Enabled {
-		root, err := store.Persist.Getx509(id)
+		root, err := store.Persist.GetX509(id)
 		if err == redis.Nil {
 			log.Default().Printf("No existing x509 detected, generating & storing new x509 with id [%d]", id)
 
@@ -96,7 +96,7 @@ func (store *CertificateStore) LoadRootX509(id *big.Int) (*x509.Certificate, err
 				log.Fatal(err)
 			}
 
-			err = store.Persist.Setx509(current)
+			err = store.Persist.SetX509(current)
 			if err != nil {
 				return nil, err
 			}
@@ -135,13 +135,13 @@ func (store *CertificateStore) LoadRootX509(id *big.Int) (*x509.Certificate, err
 }
 
 // LoadWebX509AndPrivateKey is used to retrieve x509 and private key data for local web server HTTPS
-func(store *CertificateStore) LoadWebX509AndPrivateKey(id *big.Int) (*rsa.PrivateKey, []byte, error) {
+func (store *CertificateStore) LoadWebX509AndPrivateKey(id *big.Int) (*rsa.PrivateKey, []byte, error) {
 	private, err := store.Persist.GetRSAKeyPair(id)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cert, err := store.Persist.Getx509(id)
+	cert, err := store.Persist.GetX509(id)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -86,7 +86,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 					log.Fatal(err)
 				}
 
-				err = signer.Store.Persist.Setx509(content)
+				err = signer.Store.Persist.SetX509(content)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -95,7 +95,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 				if err != nil {
 					log.Fatal(err)
 				}
-				
+
 			} else if err != nil {
 				log.Fatal(err)
 			}

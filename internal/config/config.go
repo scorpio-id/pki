@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -91,9 +90,6 @@ func NewConfig(s string) Config {
 		if err != nil {
 			log.Fatalf("Error reading file: %v", err)
 		}
-
-		// TODO remove, print the content as a string
-		fmt.Printf("File content: %s", content)
 
 		cfg.Persistence.Password = string(content)
 	}

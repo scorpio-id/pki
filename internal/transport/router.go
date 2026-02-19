@@ -118,6 +118,14 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 		}
 
 		// FIXME private key does not match, tls error!
+		if private == nil {
+			fmt.Println("private is nil!")
+		}
+
+		if webCert == nil {
+			fmt.Println("web cert is nil!")
+		}
+		
 		// install certificates
 		err = InstallX509(private, webCert)
 		if err != nil {

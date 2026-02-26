@@ -22,6 +22,7 @@ type Persistence struct {
 
 func NewPersistenceClient(cfg config.Config) Persistence {
 
+	// FIXME: See if we can prevent Redis Options auto connect
 	// TODO read documentation on rdb.Close() usage
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     cfg.Persistence.Host + ":" + cfg.Persistence.Port,

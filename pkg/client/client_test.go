@@ -62,7 +62,7 @@ func TestX509ClientWithCredentials(t *testing.T) {
 	defer server.Close()
 
 	// create an RSA identity for the client
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	priv, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		log.Fatal(err)
 	}

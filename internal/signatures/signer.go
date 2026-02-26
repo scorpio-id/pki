@@ -67,7 +67,7 @@ func NewSigner(cfg config.Config) *Signer {
 	// }
 
 	// Check root CA persistence ...
-	x509, err := store.LoadRootX509(big.NewInt(cfg.Root.SerialNumber))
+	x509, err := store.LoadRootX509(big.NewInt(cfg.Root.SerialNumber), private)
 	if err != nil {
 		fmt.Println("error in creating root CA x509")
 		log.Fatal(err)

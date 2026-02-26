@@ -62,18 +62,12 @@ func (store *CertificateStore) PopulateMemory() error {
 	return nil
 }
 
-func (store *CertificateStore) LoadRootX509(id *big.Int) (*x509.Certificate, error) {
+func (store *CertificateStore) LoadRootX509(id *big.Int, private *rsa.PrivateKey) (*x509.Certificate, error) {
 	// Check if persistence enabled, and if so repopulate root CA x509
 	if store.Persist.cfg.Persistence.Enabled {
 		root, err := store.Persist.GetX509(id)
 		if err == redis.Nil {
 			log.Default().Printf("No existing x509 detected, generating & storing new x509 with id [%d]", id)
-
-			// load RSA keypair
-			private, err := store.LoadKeyPair(id)
-			if err != nil {
-				log.Fatal(err)
-			}
 
 			duration, err := time.ParseDuration(store.Persist.cfg.PKI.CertificateTTL)
 			if err != nil {
@@ -107,12 +101,6 @@ func (store *CertificateStore) LoadRootX509(id *big.Int) (*x509.Certificate, err
 		}
 
 		return root, nil
-	}
-
-	// load RSA keypair
-	private, err := store.LoadKeyPair(id)
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	duration, err := time.ParseDuration(store.Persist.cfg.PKI.CertificateTTL)

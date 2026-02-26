@@ -1,6 +1,6 @@
 module github.com/scorpio-id/pki
 
-go 1.19
+go 1.21
 
 require (
 	github.com/jarcoal/httpmock v1.3.1

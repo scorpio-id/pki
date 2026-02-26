@@ -21,38 +21,41 @@ type Persistence struct {
 }
 
 func NewPersistenceClient(cfg config.Config) Persistence {
+	var rdb *redis.Client
+	if cfg.Persistence.Enabled {
+		// TODO read documentation on rdb.Close() usage
+		rdb = redis.NewClient(&redis.Options{
+			Addr:     cfg.Persistence.Host + ":" + cfg.Persistence.Port,
+			Username: cfg.Persistence.User,
+			Password: cfg.Persistence.Password,
+			DB:       cfg.Persistence.Database,
+			// TODO enable TLS for redis >_>;
+			TLSConfig: &tls.Config{InsecureSkipVerify: true},
+		})
 
-	// TODO read documentation on rdb.Close() usage
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     cfg.Persistence.Host + ":" + cfg.Persistence.Port,
-		Username: cfg.Persistence.User,
-		Password: cfg.Persistence.Password,
-		DB:       cfg.Persistence.Database,
-		// TODO enable TLS for redis >_>;
-		TLSConfig: &tls.Config{InsecureSkipVerify: true},
-	})
+		// Test the connection with a Ping command
+		// pong, err := rdb.Ping(context.Background()).Result()
+		// if err != nil {
+		// 	log.Fatalf("Failed to connect to Redis: %v", err)
+		// }
 
-	// Test the connection with a Ping command
-	// pong, err := rdb.Ping(context.Background()).Result()
-	// if err != nil {
-	// 	log.Fatalf("Failed to connect to Redis: %v", err)
-	// }
+		// TODO remove print statement!
+		// fmt.Println("Connected to Redis! Response:", pong)
 
-	// TODO remove print statement!
-	// fmt.Println("Connected to Redis! Response:", pong)
-
-    // WARNING wiping DB for testing purposes ...
-    // fmt.Println("Flushing DB for testing purposes ...")
-    // err = rdb.FlushAll(context.Background()).Err()
-    // if err != nil {
-    //     fmt.Println("Failed to flush DB!")
-    // }
-
+		// WARNING wiping DB for testing purposes ...
+		// fmt.Println("Flushing DB for testing purposes ...")
+		// err = rdb.FlushAll(context.Background()).Err()
+		// if err != nil {
+		//     fmt.Println("Failed to flush DB!")
+		// }
+	} 
+	
 	return Persistence{
 		Client:  rdb,
 		Context: context.Background(),
 		cfg:     cfg,
-	}
+	} 
+
 }
 
 func (persist *Persistence) SetRSAKeyPair(private *rsa.PrivateKey, id *big.Int) error {

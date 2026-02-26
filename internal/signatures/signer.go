@@ -17,6 +17,7 @@ import (
 	"encoding/pem"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/data"
@@ -71,7 +72,6 @@ func NewSigner(cfg config.Config) *Signer {
 		fmt.Println("error in creating root CA x509")
 		log.Fatal(err)
 	}
-
 	// Check if persistence is enabled and if so, populate the store
 	if cfg.Persistence.Enabled {
 		err := store.Populate()
@@ -105,6 +105,72 @@ func NewSigner(cfg config.Config) *Signer {
 		Private:          private,
 		Store:            store,
 	}
+}
+
+func (s *Signer) ObtainWebServerIdentity(cfg config.Config) (*rsa.PrivateKey, []byte, error) {
+	if cfg.Persistence.Enabled {
+		private, webCert, err := s.Store.LoadWebX509AndPrivateKey(big.NewInt(cfg.PKI.SerialNumber))
+
+		// persistence is enabled, but no web cert has been generated yet
+		if err == redis.Nil {
+			fmt.Println("persistence enabled, but no web private key, x509 found. generating ...")
+			private, err = rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			csr, err := certificate.GenerateDomainClientCSR(cfg, private)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			webCert, err = s.CreateX509WithSerial(csr, big.NewInt(cfg.PKI.SerialNumber))
+			if err != nil {
+				fmt.Println("error in creating web server HTTPS x509")
+				log.Fatal(err)
+			}
+
+			// FIXME save certs to persistence, move to function?
+			content, err := x509.ParseCertificate(webCert)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = s.Store.Persist.SetX509(content)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = s.Store.Persist.SetRSAKeyPair(private, big.NewInt(cfg.PKI.SerialNumber))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+		} else if err != nil {
+			log.Fatal(err)
+		}
+
+		return private, webCert, err
+	}
+
+	// If persistence is turned off create new keys and certificates from scratch
+	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	csr, err := certificate.GenerateDomainClientCSR(cfg, private)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	webCert, err := s.CreateX509(csr)
+	if err != nil {
+		fmt.Println("error in creating web server HTTPS x509")
+		log.Fatal(err)
+	}
+
+	return private, webCert, err
 }
 
 // CreateX509 allows the signer to generate a signed X.509 based off configurations and while keeping track of serial number

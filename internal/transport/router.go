@@ -1,18 +1,13 @@
 package transport
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"fmt"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"runtime"
 
 	"github.com/gorilla/mux"
-	"github.com/redis/go-redis/v9"
 
 	"github.com/jcmturner/gokrb5/v8/keytab"
 	"github.com/jcmturner/gokrb5/v8/service"
@@ -20,7 +15,6 @@ import (
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/signatures"
-	"github.com/scorpio-id/pki/pkg/certificate"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -53,68 +47,9 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 
 	// install CA certificates locally if target OS is linux
 	if runtime.GOOS == "linux" {
-
-		// values can either be loaded from storage or generated in-memory
-		var private *rsa.PrivateKey
-		var webCert []byte
-		var err error
-
-		if cfg.Persistence.Enabled {
-			private, webCert, err = signer.Store.LoadWebX509AndPrivateKey(big.NewInt(cfg.PKI.SerialNumber))
-			// persistence is enabled, but no web cert has been generated yet
-			if err == redis.Nil {
-				fmt.Println("persistence enabled, but no web private key, x509 found. generating ...")
-				private, err = rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				csr, err := certificate.GenerateDomainClientCSR(cfg, private)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				webCert, err = signer.CreateX509WithSerial(csr, big.NewInt(cfg.PKI.SerialNumber))
-				if err != nil {
-					fmt.Println("error in creating web server HTTPS x509")
-					log.Fatal(err)
-				}
-
-				// FIXME save certs to persistence, move to function?
-				content, err := x509.ParseCertificate(webCert)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				err = signer.Store.Persist.SetX509(content)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				err = signer.Store.Persist.SetRSAKeyPair(private, big.NewInt(cfg.PKI.SerialNumber))
-				if err != nil {
-					log.Fatal(err)
-				}
-
-			} else if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			csr, err := certificate.GenerateDomainClientCSR(cfg, private)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			webCert, err = signer.CreateX509(csr)
-			if err != nil {
-				fmt.Println("error in creating web server HTTPS x509")
-				log.Fatal(err)
-			}
+		private, webCert, err := signer.ObtainWebServerIdentity(cfg)
+		if err != nil {
+			log.Fatal(err)
 		}
 
 		// FIXME private key does not match, tls error!

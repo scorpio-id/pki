@@ -38,11 +38,16 @@ type CertificateMetadata struct {
 }
 
 func NewCertificateStore(cfg config.Config) *CertificateStore {
+	// Initalizes persistent database; remains Nil if persistence is off
+	var persistentClient Persistence
+	if cfg.Persistence.Enabled {
+		persistentClient = NewPersistenceClient(cfg)
+	}
 
 	return &CertificateStore{
 		Data:    make([]CertificateMetadata, 0),
 		Revoked: make([]CertificateMetadata, 0),
-		Persist: NewPersistenceClient(cfg),
+		Persist: persistentClient,
 	}
 }
 
@@ -136,7 +141,7 @@ func (store *CertificateStore) LoadRootX509(id *big.Int) (*x509.Certificate, err
 
 // LoadWebX509AndPrivateKey is used to retrieve x509 and private key data for local web server HTTPS
 func (store *CertificateStore) LoadWebX509AndPrivateKey(id *big.Int) (*rsa.PrivateKey, []byte, error) {
-	private, err := store.Persist.GetRSAKeyPair(id)
+	private, err := store.LoadKeyPair(id)
 	if err != nil {
 		return nil, nil, err
 	}

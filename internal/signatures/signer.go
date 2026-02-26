@@ -74,7 +74,7 @@ func NewSigner(cfg config.Config) *Signer {
 	}
 	// Check if persistence is enabled and if so, populate the store
 	if cfg.Persistence.Enabled {
-		err := store.Populate()
+		err := store.PopulateMemory()
 		if err != nil {
 			log.Fatal(err)
 		}

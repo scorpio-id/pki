@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"fmt"
-	"log"
 	"math/big"
 
 	"github.com/redis/go-redis/v9"
@@ -35,13 +33,13 @@ func NewPersistenceClient(cfg config.Config) Persistence {
 	})
 
 	// Test the connection with a Ping command
-	pong, err := rdb.Ping(context.Background()).Result()
-	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
-	}
+	// pong, err := rdb.Ping(context.Background()).Result()
+	// if err != nil {
+	// 	log.Fatalf("Failed to connect to Redis: %v", err)
+	// }
 
 	// TODO remove print statement!
-	fmt.Println("Connected to Redis! Response:", pong)
+	// fmt.Println("Connected to Redis! Response:", pong)
 
     // WARNING wiping DB for testing purposes ...
     // fmt.Println("Flushing DB for testing purposes ...")

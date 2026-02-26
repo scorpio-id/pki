@@ -38,20 +38,14 @@ type CertificateMetadata struct {
 }
 
 func NewCertificateStore(cfg config.Config) *CertificateStore {
-	// Initalizes persistent database; remains Nil if persistence is off
-	var persistentClient Persistence
-	if cfg.Persistence.Enabled {
-		persistentClient = NewPersistenceClient(cfg)
-	}
-
 	return &CertificateStore{
 		Data:    make([]CertificateMetadata, 0),
 		Revoked: make([]CertificateMetadata, 0),
-		Persist: persistentClient,
+		Persist:  NewPersistenceClient(cfg),
 	}
 }
 
-func (store *CertificateStore) Populate() error {
+func (store *CertificateStore) PopulateMemory() error {
 	// TODO query all redis entries using the persistance client with the 'certificate' key (ie: GetAll) marshal results
 	// into metadata structs and add to certificate store.
 

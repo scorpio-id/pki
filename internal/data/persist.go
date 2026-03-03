@@ -49,13 +49,11 @@ func NewPersistenceClient(cfg config.Config) Persistence {
 	//     fmt.Println("Failed to flush DB!")
 	// }
 	
-
 	return Persistence{
 		Client:  rdb,
 		Context: context.Background(),
 		cfg:     cfg,
 	} 
-
 }
 
 func (persist *Persistence) SetRSAKeyPair(private *rsa.PrivateKey, id *big.Int) error {

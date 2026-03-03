@@ -201,10 +201,12 @@ func (store *CertificateStore) AddX509Metadata(der []byte) error {
 	// add to metadata cache
 	store.Data = append(store.Data, metadata)
 
-	// add to persistent store
-	err = store.Persist.SetCertificateMetadata(metadata)
-	if err != nil {
-		return err
+	// add to persistent store if persistence enabled
+	if store.Persist.cfg.Persistence.Enabled {
+		err = store.Persist.SetCertificateMetadata(metadata)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

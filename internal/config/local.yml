@@ -2,11 +2,20 @@
 server:
   host: "http://127.0.0.1"
   port: 8081
+
+persistence:
+  enabled: true
+  host: "db-valkey-nyc1-scorpio-do-user-16782644-0.l.db.ondigitalocean.com"
+  port: 25061
+  user: "default"
+  path: "/etc/scorpio-secret/password"
+  database: 0
   
 # pki configuration
 pki:
   rsa_bits: 2048
-  serial_number: 1000
+  # WARNING: cannot be same serial number as root CA!
+  serial_number: 1001
   csr_max_memory: 1024
   certificate_ttl: "8760h"
   certificate_authority: 
@@ -15,6 +24,8 @@ pki:
     - "^$"
     - ".*\\.scorpio\\.ordinarycomputing\\.com"
     - ".*\\.example\\.com"
+  sans:
+    - "ca.scorpio.ordinarycomputing.com"
 
 # oauth configuration
 oauth:
@@ -32,8 +43,7 @@ root:
   address: "16192 Coastal Highway"
   postal: "19958"
   cn: "ca.scorpio.ordinarycomputing.com"
-  sans:
-    - "ca.scorpio.ordinarycomputing.com"
+  serial_number: 1000
   install:
     path: "/etc/ssl/certs"
     cert_filename: "scorpio-root.pem"

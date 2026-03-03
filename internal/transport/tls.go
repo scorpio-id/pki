@@ -8,14 +8,13 @@ import (
 	"os"
 )
 
-
-// SerializeX509 installs certs on the local linux filesystem
-func SerializeX509(private *rsa.PrivateKey, webCert []byte) error {
+// InstallX509 installs certs on the local linux filesystem
+func InstallX509(private *rsa.PrivateKey, webCert []byte) error {
 	// TODO: move filepath to config
 	out, err := os.Create("/etc/ssl/certs/scorpio-root.pem")
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
 	defer out.Close()
 
@@ -36,9 +35,9 @@ func SerializeX509(private *rsa.PrivateKey, webCert []byte) error {
 
 	// TODO: add to config
 	key, err := os.Create("/etc/ssl/certs/scorpio-private.key")
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
 	defer key.Close()
 
@@ -46,7 +45,7 @@ func SerializeX509(private *rsa.PrivateKey, webCert []byte) error {
 
 	privateBlock := pem.Block{
 		Type:  "PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(private), 
+		Bytes: x509.MarshalPKCS1PrivateKey(private),
 	}
 
 	// TODO: check to ensure serialized correctly

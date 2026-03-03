@@ -1,8 +1,7 @@
 package transport
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -16,12 +15,11 @@ import (
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/signatures"
-	"github.com/scorpio-id/pki/pkg/certificate"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // NewRouters creates a new mux router with applied server
-func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
+func NewRouters(cfg config.Config) (*mux.Router, *mux.Router) {
 	router := mux.NewRouter()
 
 	signer := signatures.NewSigner(cfg)
@@ -49,23 +47,22 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 	// install CA certificates locally if target OS is linux
 	if runtime.GOOS == "linux" {
-		private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
-		if err != nil {
-			log.Fatal(err)
-		}
-	
-		csr, err := certificate.GenerateDomainClientCSR(cfg, private)
+		private, webCert, err := signer.ObtainWebServerIdentity(cfg)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		webCert, err := signer.CreateX509(csr)
-		if err != nil {
-			log.Fatal(err)
-		}				
+		// FIXME private key does not match, tls error!
+		if private == nil {
+			fmt.Println("private is nil!")
+		}
+
+		if webCert == nil {
+			fmt.Println("web cert is nil!")
+		}
 
 		// install certificates
-		err = SerializeX509(private, webCert)
+		err = InstallX509(private, webCert)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -102,7 +99,7 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 		// metadata endpoint for console UI
 		subr.HandleFunc("/metadata", signer.CertificateStoreHandler).Methods(http.MethodGet, http.MethodOptions)
 
-		// enable CORS 
+		// enable CORS
 		subr.Use(mux.CORSMethodMiddleware(subr))
 
 		return router, httpRouter
@@ -110,4 +107,3 @@ func NewRouters(cfg config.Config) (*mux.Router, *mux.Router){
 
 	return router, nil
 }
-

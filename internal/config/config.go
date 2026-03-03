@@ -17,6 +17,15 @@ type Config struct {
 		Port string `yaml:"port" json:"port"`
 		Host string `yaml:"host" json:"host"`
 	} `yaml:"server" json:"server"`
+	Persistence struct {
+		Enabled  bool   `yaml:"enabled" json:"enabled"`
+		Port     string `yaml:"port" json:"port"`
+		Host     string `yaml:"host" json:"host"`
+		User     string `yaml:"user" json:"user"`
+		Path     string `yaml:"path" json:"path"`
+		Password string `yaml:"-" json:"-"` // DO NOT MARSHAL PASSWORD!
+		Database int    `yaml:"database" json:"database"`
+	} `yaml:"persistence" json:"persistence"`
 	PKI struct {
 		RSABits              int      `yaml:"rsa_bits" json:"rsa_bits"`
 		CSRMaxMemory         int      `yaml:"csr_max_memory" json:"csr_max_memory"`
@@ -26,6 +35,7 @@ type Config struct {
 		CertificateAuthority struct {
 			CommonName string `yaml:"common_name" json:"common_name"`
 		} `yaml:"certificate_authority" json:"certificate_authority"`
+		SANs                 []string `yaml:"sans" json:"sans"`
 	} `yaml:"pki" json:"pki"`
 	OAuth struct {
 		Enabled        bool     `yaml:"enabled" json:"enabled"`
@@ -39,8 +49,8 @@ type Config struct {
 		Province           string   `yaml:"province" json:"province"`	
 		StreetAddress      string   `yaml:"address" json:"address"`	
 		PostalCode         string   `yaml:"postal" json:"postal"`	
-		CommonName         string   `yaml:"cn" json:"cn"`	
-		SANs               []string `yaml:"sans" json:"sans"`
+		CommonName         string   `yaml:"cn" json:"cn"`
+		SerialNumber         int64    `yaml:"serial_number" json:"serial_number"`
 		Install struct{
 			Path               string `yaml:"path" json:"path"`
 			CertFilename       string `yaml:"cert_filename" json:"cert_filename"`
@@ -72,6 +82,16 @@ func NewConfig(s string) Config {
 	err = decoder.Decode(&cfg)
 	if err != nil {
 		log.Fatal(err)
+	}
+	
+	// TODO retrieve content from Kube Secrets using configured file paths if persistence enabled
+	if cfg.Persistence.Enabled {
+		content, err := os.ReadFile(cfg.Persistence.Path)
+		if err != nil {
+			log.Fatalf("Error reading file: %v", err)
+		}
+
+		cfg.Persistence.Password = string(content)
 	}
 
 	return cfg

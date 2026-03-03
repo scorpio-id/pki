@@ -54,7 +54,7 @@ func TestX509ClientWithCredentials(t *testing.T) {
 	cfg := config.NewConfig("../../internal/config/test.yml")
 
 	s := signatures.NewSigner(cfg)
-
+	
 	mux := http.NewServeMux()
 	mux.HandleFunc("/certificate", s.CSRHandler)
 

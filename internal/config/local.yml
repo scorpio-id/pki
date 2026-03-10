@@ -4,7 +4,7 @@ server:
   port: 8081
 
 persistence:
-  enabled: true
+  enabled: false
   host: "db-valkey-nyc1-scorpio-do-user-16782644-0.l.db.ondigitalocean.com"
   port: 25061
   user: "default"

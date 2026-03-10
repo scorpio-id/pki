@@ -85,14 +85,14 @@ func NewConfig(s string) Config {
 	}
 	
 	// TODO retrieve content from Kube Secrets using configured file paths if persistence enabled
-	if cfg.Persistence.Enabled {
+	// if cfg.Persistence.Enabled {
 		content, err := os.ReadFile(cfg.Persistence.Path)
 		if err != nil {
 			log.Fatalf("Error reading file: %v", err)
 		}
 
 		cfg.Persistence.Password = string(content)
-	}
+	// }
 
 	return cfg
 }

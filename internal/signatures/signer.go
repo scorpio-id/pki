@@ -29,7 +29,8 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
-const suggestedFilename = "ca-public.cer"
+const SUGGESTED_PUBLIC_FILENAME = "ca-public.cer"
+const SUGGESTED_PKCS_FILENAME = "identity.p12"
 
 // Signer generates an RSA public, private key pair and signs X.509 certificates
 type Signer struct {
@@ -374,6 +375,9 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+SUGGESTED_PKCS_FILENAME+"\"")
+
 	// generate new RSA identity for PKCS12
 	private, err := rsa.GenerateKey(rand.Reader, s.RSABits)
 	if err != nil {
@@ -444,8 +448,6 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	w.Header().Set("Content-Type", "application/octet-stream")
 }
 
 // SPNEGO Handler Swagger Documentation
@@ -562,7 +564,7 @@ func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
 
 	// TODO - return JSON (JWKS?) representation
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+suggestedFilename+"\"")
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+SUGGESTED_PUBLIC_FILENAME+"\"")
 
 	root := pem.Block{
 		Type:  "CERTIFICATE",

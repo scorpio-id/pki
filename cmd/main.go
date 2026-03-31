@@ -2,12 +2,15 @@ package main
 
 import (
 	"log"
+	"context"
 	"net/http"
 	"runtime"
 
 	"github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/transport"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 //	@title			Scorpio PKI Service
@@ -47,6 +50,17 @@ func main() {
 
 		
 	} else {
+		// run the MCP server over stdin/stdout until the client disconnects
+		server := transport.NewMCPServer()
+
+		go func() {
+			log.Default().Println("starting mcp server ...")
+			if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
+				log.Fatal(err)
+			}
+		}()
+		
+		log.Default().Println("starting http server ...")
 		log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, router))
 	}
 }

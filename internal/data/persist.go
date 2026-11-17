@@ -44,7 +44,7 @@ func NewPersistenceClient(cfg config.Config) Persistence {
 
 	// WARNING wiping DB for testing purposes ...
 	// fmt.Println("Flushing DB for testing purposes ...")
-	// err = rdb.FlushAll(context.Background()).Err()
+	// err := rdb.FlushAll(context.Background()).Err()
 	// if err != nil {
 	//     fmt.Println("Failed to flush DB!")
 	// }

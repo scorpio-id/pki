@@ -318,8 +318,8 @@ func TestSignX509CertificateNameAllowedPolicyError(t *testing.T) {
 	
 	cfg := config.NewConfig("../config/test.yml")
 
-	s := NewSigner(cfg)
-
+	s := NewSigner(cfg,)
+	
 	mux := http.NewServeMux()
 	mux.HandleFunc("/certificate", s.CSRHandler)
 

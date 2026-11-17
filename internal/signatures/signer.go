@@ -1,21 +1,23 @@
 package signatures
 
 import (
-	"bufio"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"regexp"
 	"time"
 
+	"encoding/json"
 	"encoding/pem"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	_ "github.com/scorpio-id/pki/docs"
 	"github.com/scorpio-id/pki/internal/config"
 	"github.com/scorpio-id/pki/internal/data"
@@ -27,22 +29,28 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 )
 
+const suggestedFilename = "ca-public.cer"
+
 // Signer generates an RSA public, private key pair and signs X.509 certificates
 type Signer struct {
-	RSABits             int
-	CSRMaxMemory        int
-	CurrentSerialNumber int64
-	AllowedSANs         []string
-	Duration            time.Duration
-	Name                pkix.Name
-	Certificate         *x509.Certificate
-	private             *rsa.PrivateKey
-	Store               *data.SubjectAlternateNameStore
+	RSABits          int
+	CSRMaxMemory     int
+	RootSerialNumber *big.Int
+	AllowedSANs      []string
+	Duration         time.Duration
+	Name             pkix.Name
+	Certificate      *x509.Certificate
+	Private          *rsa.PrivateKey
+	Store            *data.CertificateStore
 }
 
 func NewSigner(cfg config.Config) *Signer {
-	// start by creating a RSA public/private key pair
-	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
+	// create store and add own name to store
+	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
+	store := data.NewCertificateStore(cfg)
+
+	// load RSA keypair from persistence
+	private, err := store.LoadKeyPair(big.NewInt(cfg.Root.SerialNumber))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,56 +60,118 @@ func NewSigner(cfg config.Config) *Signer {
 		log.Fatal(err)
 	}
 
-	cert, err := certificate.GenerateRootCertificate(cfg, private, duration)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// create store and add own name to store
-	// FIXME - currently add the CA's Common Name, do we need to add *.CommonName as well to prevent impersonation?
-	store := data.NewSubjectAlternateNameStore()
-
 	// FIXME - consolidate config, move pki section to root section
-	ca := data.SANs{
-		SerialNumber: cfg.PKI.SerialNumber,
-		Names:        []string{cfg.PKI.CertificateAuthority.CommonName},
-	}
+	// ca := data.SANs{
+	// 	SerialNumber: cfg.PKI.SerialNumber,
+	// 	Names:        []string{cfg.PKI.CertificateAuthority.CommonName},
+	// }
 
-	err = store.Add(ca)
+	// Check root CA persistence ...
+	x509, err := store.LoadRootX509(big.NewInt(cfg.Root.SerialNumber), private)
 	if err != nil {
-		log.Fatalf("issue adding [%v] to blank SAN store", err)
-	}
-
-	x509, err := x509.ParseCertificate(cert)
-	if err != nil {
+		fmt.Println("error in creating root CA x509 ...")
 		log.Fatal(err)
+	}
+
+	// Check if persistence is enabled and if so, populate the store
+	if cfg.Persistence.Enabled {
+		err := store.PopulateMemory()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	serialnum := uuid.NewString()
-	
+
 	name := pkix.Name{
-		Country: []string{cfg.Root.Country},
-		Organization: []string{cfg.Root.Organization},
+		Country:            []string{cfg.Root.Country},
+		Organization:       []string{cfg.Root.Organization},
 		OrganizationalUnit: []string{cfg.Root.OrganizationalUnit},
-		Locality: []string{cfg.Root.Locality},
-		Province: []string{cfg.Root.Province},
-		StreetAddress: []string{cfg.Root.StreetAddress},
-		PostalCode: []string{cfg.Root.PostalCode},
-		SerialNumber: serialnum,
-		CommonName: cfg.Root.CommonName,
+		Locality:           []string{cfg.Root.Locality},
+		Province:           []string{cfg.Root.Province},
+		StreetAddress:      []string{cfg.Root.StreetAddress},
+		PostalCode:         []string{cfg.Root.PostalCode},
+		SerialNumber:       serialnum,
+		CommonName:         cfg.Root.CommonName,
 	}
 
 	return &Signer{
-		RSABits:             cfg.PKI.RSABits,
-		CSRMaxMemory:        cfg.PKI.CSRMaxMemory,
-		CurrentSerialNumber: cfg.PKI.SerialNumber,
-		AllowedSANs:         cfg.PKI.AllowedNames,
-		Duration:            duration,
-		Name:                name,
-		Certificate:         x509,
-		private:             private,
-		Store:               store,
+		RSABits:          cfg.PKI.RSABits,
+		CSRMaxMemory:     cfg.PKI.CSRMaxMemory,
+		RootSerialNumber: big.NewInt(cfg.PKI.SerialNumber),
+		AllowedSANs:      cfg.PKI.AllowedNames,
+		Duration:         duration,
+		Name:             name,
+		Certificate:      x509,
+		Private:          private,
+		Store:            store,
 	}
+}
+
+func (s *Signer) ObtainWebServerIdentity(cfg config.Config) (*rsa.PrivateKey, []byte, error) {
+	if cfg.Persistence.Enabled {
+		private, webCert, err := s.Store.LoadWebX509AndPrivateKey(big.NewInt(cfg.PKI.SerialNumber))
+
+		// persistence is enabled, but no web cert has been generated yet
+		if err == redis.Nil {
+			fmt.Println("persistence enabled, but no web private key, x509 found. generating ...")
+			private, err = rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			csr, err := certificate.GenerateDomainClientCSR(cfg, private)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			webCert, err = s.CreateX509WithSerial(csr, big.NewInt(cfg.PKI.SerialNumber))
+			if err != nil {
+				fmt.Println("error in creating web server HTTPS x509")
+				log.Fatal(err)
+			}
+
+			// FIXME save certs to persistence, move to function?
+			content, err := x509.ParseCertificate(webCert)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = s.Store.Persist.SetX509(content)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = s.Store.Persist.SetRSAKeyPair(private, big.NewInt(cfg.PKI.SerialNumber))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+		} else if err != nil {
+			log.Fatal(err)
+		}
+
+		return private, webCert, err
+	}
+
+	// If persistence is turned off create new keys and certificates from scratch
+	private, err := rsa.GenerateKey(rand.Reader, cfg.PKI.RSABits)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	csr, err := certificate.GenerateDomainClientCSR(cfg, private)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	webCert, err := s.CreateX509(csr)
+	if err != nil {
+		fmt.Println("error in creating web server HTTPS x509")
+		log.Fatal(err)
+	}
+
+	return private, webCert, err
 }
 
 // CreateX509 allows the signer to generate a signed X.509 based off configurations and while keeping track of serial number
@@ -112,28 +182,50 @@ func (s *Signer) CreateX509(csr []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	content, err := x509.ParseCertificateRequest(csr)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// FIXME switch to randomly generated BigInts
+	max := new(big.Int)
+	max.Exp(big.NewInt(2), big.NewInt(130), nil)
 
-	// increment serial number
-	s.CurrentSerialNumber += 1
-
-	// the SAN store enforces all names be unique; add requested Common Name to requested SANs
-	names := append(content.DNSNames, content.Subject.CommonName)
-
-	san := data.SANs{
-		SerialNumber: s.CurrentSerialNumber,
-		Names:        names,
-	}
-
-	err = s.Store.Add(san)
+	// Generate secure random serial number
+	serial, err := rand.Int(rand.Reader, max)
 	if err != nil {
 		return nil, err
 	}
 
-	return certificate.Sign(csr, s.private, s.CurrentSerialNumber, s.Duration, s.Certificate)
+	signed, err := certificate.Sign(csr, s.Private, serial, s.Duration, s.Certificate)
+	if err != nil {
+		return nil, err
+	}
+
+	// add metadata to certificate store, enforce SAN unique
+	err = s.Store.AddX509Metadata(signed)
+	if err != nil {
+		return nil, err
+	}
+
+	return signed, nil
+}
+
+// CreateX509WithSerial allows the signer to generate a signed X.509 based off configurations
+func (s *Signer) CreateX509WithSerial(csr []byte, serial *big.Int) ([]byte, error) {
+	// ensure desired SAN is allowed per policy configuration
+	err := s.EnforceNamePolicy(csr)
+	if err != nil {
+		return nil, err
+	}
+
+	signed, err := certificate.Sign(csr, s.Private, serial, s.Duration, s.Certificate)
+	if err != nil {
+		return nil, err
+	}
+
+	// add metadata to certificate store, enforce SAN unique
+	err = s.Store.AddX509Metadata(signed)
+	if err != nil {
+		return nil, err
+	}
+
+	return signed, nil
 }
 
 // EnforceNamePolicy ensures that requested Common Name and SANs are within configured naming standards policy
@@ -164,56 +256,6 @@ func (s *Signer) EnforceNamePolicy(csr []byte) error {
 	return err
 }
 
-// SerializeX509 installs certs on the local linux filesystem
-func (s *Signer) SerializeX509() error {
-	// TODO: move filepath to config
-	out, err := os.Create("/etc/ssl/certs/scorpio-root.pem")
-    if err != nil {
-        return err
-    }
-
-	defer out.Close()
-
-	w := bufio.NewWriter(out)
-
-	root := pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: s.Certificate.Raw,
-	}
-
-	// TODO: check to ensure serialized correctly
-	err = pem.Encode(w, &root)
-	if err != nil {
-		return err
-	}
-
-	w.Flush()
-
-	key, err := os.Create("/etc/ssl/certs/scorpio-private.key")
-    if err != nil {
-        return err
-    }
-
-	defer key.Close()
-
-	w = bufio.NewWriter(key)
-
-	private := pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(s.private), 
-	}
-
-	// TODO: check to ensure serialized correctly
-	err = pem.Encode(w, &private)
-	if err != nil {
-		return err
-	}
-
-	w.Flush()
-
-	return nil
-}
-
 func (s *Signer) GenerateKeytab(cfg config.Config) error {
 	kt := keytab.New()
 	ts := time.Now()
@@ -228,8 +270,8 @@ func (s *Signer) GenerateKeytab(cfg config.Config) error {
 		return err
 	}
 
-	// TODO: Permission keytab file correctly 
-	os.WriteFile(cfg.Spnego.Volume + "/" + cfg.Spnego.Keytab, generated, 0777)
+	// TODO: Permission keytab file correctly
+	err = os.WriteFile(cfg.Spnego.Volume+"/"+cfg.Spnego.Keytab, generated, 0777)
 	if err != nil {
 		return err
 	}
@@ -237,19 +279,18 @@ func (s *Signer) GenerateKeytab(cfg config.Config) error {
 	return nil
 }
 
-
-//  CSR Handler Swagger Documentation
+//	 CSR Handler Swagger Documentation
 //
-//	@Summary		Processes Certificate Signing Requests and returns X.509
-//	@Description	The CSR handler is responsible for processing Certificate Signing Requests (CSRs). It validates incoming CSR data, ensuring compliance with formatting and policy standardsnn are met. Once validated, the handler creates a new digital certificate with the entity's public key and associated identity information. The handler produces and returns a PEM encoded certificate 
-//	@Tags			CSR 
-//	@Accept			mpfd
-//	@Produce		octet-stream
-//	@Success		200				{body}		file		"Certificate.pem"
-//	@Failure		400				{string}	http.error	"Bad Request"
-//	@Failure		415				{string}	http.error	"Unsuported Media - Must be Multipart Form Data"
+//		@Summary		Processes Certificate Signing Requests and returns X.509
+//		@Description	The CSR handler is responsible for processing Certificate Signing Requests (CSRs). It validates incoming CSR data, ensuring compliance with formatting and policy standardsnn are met. Once validated, the handler creates a new digital certificate with the entity's public key and associated identity information. The handler produces and returns a PEM encoded certificate
+//		@Tags			CSR
+//		@Accept			mpfd
+//		@Produce		octet-stream
+//		@Success		200				{body}		file		"Certificate.pem"
+//		@Failure		400				{string}	http.error	"Bad Request"
+//		@Failure		415				{string}	http.error	"Unsuported Media - Must be Multipart Form Data"
 //
-//	@Router	/certificate [post]
+//		@Router	/certificate [post]
 //
 // CSRHandler accepts a CSR in a multipart form data request and returns a PEM file or JSON content given HTTP Accept header
 func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
@@ -312,6 +353,7 @@ func (s *Signer) CSRHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 }
+
 // PKCS #12 Handler Swagger Documentation
 //
 //	@Summary		Handles PKCS #12 request
@@ -331,7 +373,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		return
 	}
-	
+
 	// generate new RSA identity for PKCS12
 	private, err := rsa.GenerateKey(rand.Reader, s.RSABits)
 	if err != nil {
@@ -352,7 +394,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	csr, err := certificate.GenerateCSRWithPrivateKey(sans, private)
+	csr, err := certificate.GenerateCSRWithPrivateKey(s.Name, sans, private)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
@@ -368,14 +410,6 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
-	// TODO use this in production!
-	// intermediate := []*x509.Certificate{s.Certificate}
-	// pfx, err := pkcs12.Encode(rand.Reader, private, leaf, intermediate, "")
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// }
-	// w.Write(pfx)
 
 	// create PKCS12 file
 	// private key
@@ -417,7 +451,7 @@ func (s *Signer) PKCSHandler(w http.ResponseWriter, r *http.Request) {
 // SPNEGO Handler Swagger Documentation
 //
 //	@Summary		Handles SPNEGO request
-//	@Description	SPNEGOHandler accepts a list of SANs to produce a PKCS-12 
+//	@Description	SPNEGOHandler accepts a list of SANs to produce a PKCS-12
 //	@Tags			SPNEGO
 //	@Accept			x-www-form-urlencoded
 //	@Produce		octet-stream
@@ -440,6 +474,7 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 
 	values := r.URL.Query()
 	if values == nil {
+		w.Write([]byte("query values empty"))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -452,21 +487,15 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	csr, err := certificate.GenerateCSRWithPrivateKey(sans, private)
+	csr, err := certificate.GenerateCSRWithPrivateKey(s.Name, sans, private)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
-	// csr, err = certificate.InsertKeyCSR(csr, private)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	log.Fatal(err)
-	// }
-
 	cert, err := s.CreateX509(csr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -482,13 +511,6 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	// returns DER-encoded PKCS12 file
-	// pfx, _, err := certificate.EncodePFX(private, cert, intermediate)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	log.Fatal(err)
-	// }
-
 	// TODO - support JSON responses
 	if r.Header.Get("Accept") == "application/json" {
 		// some function to return JSON content for X.509 or PKCS
@@ -498,18 +520,49 @@ func (s *Signer) SPNEGOHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(pfx)
 }
 
+// Certificate Store Metadata Handler Swagger Documentation
+//
+//	@Summary	Provides a JSON description of all issued, active, and revoked certificates
+//	@Tags		Certificates
+//	@Success	200	{JSON}
+//	@Router		/metadata [get]
+//
+// CertificateStoreHandler returns a JSON description of all issued, active, and revoked certificates
+func (s *Signer) CertificateStoreHandler(w http.ResponseWriter, r *http.Request) {
+
+	// FIXME move CORS URLs to config
+	// check CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		return
+	}
+
+	// TODO - return JSON (JWKS?) representation
+	w.Header().Set("Content-Type", "application/json")
+
+	content, err := json.Marshal(s.Store)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	w.Write(content)
+}
+
 // Public X.509 Handler Swagger Documentation
 //
 //	@Summary	Exposes the CAs Public X.509
 //	@Tags		Certificates
 //	@Success	200	{file}	Public	X.509	(PEM Encoded)
 //	@Router		/public [get]
-// 
+//
 // PublicHandler returns the public X.509 of the certificate authority
 func (s *Signer) PublicHandler(w http.ResponseWriter, r *http.Request) {
+
 	// TODO - return JSON (JWKS?) representation
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"scorpio.cer\"")
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+suggestedFilename+"\"")
 
 	root := pem.Block{
 		Type:  "CERTIFICATE",
@@ -530,10 +583,8 @@ func VerifyMultipartForm(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if !match {
-		return fmt.Errorf("Content-Type header must contain multipart/form-data with boundary") 
+		return fmt.Errorf("Content-Type header must contain multipart/form-data with boundary")
 	}
 
 	return nil
 }
-
-

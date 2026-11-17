@@ -2,10 +2,19 @@
 server:
   host: "http://127.0.0.1"
   port: 8081
+
+persistence:
+  enabled: false
+  host: "localhost"
+  port: 6379
+  password: "move-to-kube-secrets"
+  database: 0
+
 # pki configuration
 pki:
   rsa_bits: 2048
-  serial_number: 1000
+  # WARNING: cannot be same serial number as root CA!
+  serial_number: 1001
   csr_max_memory: 1024
   certificate_ttl: "60m"
   certificate_authority: 
@@ -13,13 +22,32 @@ pki:
   allowed_names:
     - "^$"
     - ".*\\.example\\.com"
+
 oauth:
   enabled: True
   trusted_issuers:
     - "http://localhost:8082/*"
 
-# SPNEGO NFS configuration
+# root CA configuration
+root:
+  country: "USA"
+  org: "Ordinary Computing Co."
+  ou: "Technology"
+  locality: "Lewes"
+  province: "Delaware"
+  address: "16192 Coastal Highway"
+  postal: "19958"
+  cn: "ca.scorpio.ordinarycomputing.com"
+  serial_number: 1000
+  install:
+    path: "/etc/ssl/certs"
+    cert_filename: "scorpio-root.pem"
+    private_filename: "scorpio-private.key"
+
+# SPNEGO configuration
 spnego:
+  service_principal: "HTTP/ca.scorpio.ordinarycomputing.com"
+  password: "move-to-kube-secrets-2222"
+  realm: "KRB.SCORPIO.ORDINARYCOMPUTING.COM"
   volume: "/scorpio"
   keytab: "scorpio-pki.keytab"
-  password: "move-to-kube-secrets-2222"
